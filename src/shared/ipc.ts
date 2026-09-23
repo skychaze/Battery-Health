@@ -1,7 +1,6 @@
 import type { BatteryCheck } from "./battery";
 import type { Settings } from "./settings";
 
-/** A signed release newer than the running build, as the window and tray show it. */
 export type ReleaseNotice = {
   id: string;
   message: string;
@@ -9,6 +8,7 @@ export type ReleaseNotice = {
   throughVersion: string;
   platforms?: ("linux" | "darwin" | "win32")[];
 };
+/** A signed release newer than the running build, as the window and tray show it. */
 export type AvailableUpdate = { version: string; manualInstall: boolean; notices: ReleaseNotice[] };
 export type InstallProgress = { stage: "download"; received: number; total: number | null } | { stage: "install" };
 export type ReleaseChange = { kind: "new" | "fixed" | "changed"; scope: string | null; summary: string };
