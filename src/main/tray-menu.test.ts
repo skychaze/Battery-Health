@@ -22,7 +22,7 @@ describe("tray menu", () => {
   });
 
   it("leads the actions with a pending update", () => {
-    expect(trayItems(null, { version: "3.1.1" }, "Tether").slice(1, 3)).toEqual([
+    expect(trayItems(null, { version: "3.1.1", manualInstall: false, notices: [] }, "Tether").slice(1, 3)).toEqual([
       "separator",
       { label: "Update to v3.1.1", action: "show" },
     ]);
