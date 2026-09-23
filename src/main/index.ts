@@ -1,5 +1,16 @@
 import { join } from "node:path";
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, nativeTheme, Notification, Tray } from "electron";
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  Menu,
+  nativeImage,
+  nativeTheme,
+  Notification,
+  shell,
+  Tray,
+} from "electron";
 import appIcon from "../../build/icons/icon.png";
 import previewAppIcon from "../../build/icons/preview/icon.png";
 import previewTrayIcon from "../../build/icons/preview/tray.png";
@@ -67,10 +78,14 @@ function start() {
   const settingsPath = join(app.getPath("userData"), "settings.json");
   const sound = new SoundPlayer();
   let lastCheck: BatteryCheck | null = null;
-  const updater = new Updater(manifestUrl, (update) => {
-    renderTray();
-    publish("updateAvailable", update);
-  });
+  const updater = new Updater(
+    manifestUrl,
+    (update) => {
+      renderTray();
+      publish("updateAvailable", update);
+    },
+    (progress) => publish("installProgress", progress),
+  );
   const renderTray = createTray(() => trayItems(lastCheck, updater.available(), identity.productName));
   const monitor = new Monitor(loadSettings(settingsPath), {
     readBattery: () => readBattery(powerSupply),
@@ -88,6 +103,7 @@ function start() {
   const current: { [E in keyof Events]: () => Events[E] | null } = {
     batteryCheck: () => lastCheck,
     updateAvailable: () => updater.available(),
+    installProgress: () => updater.installProgress(),
   };
   ipcMain.handle(CURRENT, (_event, event: keyof Events) => current[event]?.() ?? null);
   handleCommands(monitor, settingsPath, updater);
@@ -153,11 +169,13 @@ function handleCommands(monitor: Monitor, settingsPath: string, updater: Updater
       throw new Error(`Could not check for updates: ${message(error)}`);
     }),
   );
-  handle("installUpdate", () =>
-    updater.install().catch((error: unknown) => {
+  handle("installUpdate", (acknowledgedNoticeIds) =>
+    updater.install(acknowledgedNoticeIds).catch((error: unknown) => {
       throw new Error(`Could not install the update: ${message(error)}`);
     }),
   );
+  handle("releaseNotes", () => updater.releaseNotes());
+  handle("openLatestRelease", () => shell.openExternal("https://github.com/zytact/tether/releases/latest"));
 }
 
 /** Closing the window destroys it, so the tray and a normal launch build it afresh. A closed window

@@ -1,6 +1,6 @@
 import { generateKeyPairSync, sign } from "node:crypto";
 import { describe, expect, it } from "vite-plus/test";
-import { nextRetry, parseManifest, pendingUpdate, verifySignature } from "./release";
+import { nextRetry, parseManifest, parseReleases, pendingUpdate, verifySignature } from "./release";
 
 const asset = { url: "https://x/tether.rpm", signature: "c2ln" };
 
@@ -11,13 +11,22 @@ describe("release manifest", () => {
         version: "3.1.1",
         platforms: { "windows-x86_64": { url: "https://x/setup.exe", signature: "c2ln" }, "linux-x86_64-deb": {} },
       }),
-    ).toEqual({ version: "3.1.1", platforms: { "windows-x86_64": { url: "https://x/setup.exe", signature: "c2ln" } } });
+    ).toEqual({
+      version: "3.1.1",
+      minimumVersion: null,
+      notices: [],
+      platforms: { "windows-x86_64": { url: "https://x/setup.exe", signature: "c2ln" } },
+    });
     expect(() => parseManifest({ platforms: {} })).toThrow();
   });
 
   it("offers only a later version", () => {
     const offered = (version: string, current: string) =>
-      pendingUpdate({ version, platforms: { "linux-x86_64-deb": asset } }, current, "linux-x86_64-deb") !== null;
+      pendingUpdate(
+        parseManifest({ version, platforms: { "linux-x86_64-deb": asset } }),
+        current,
+        "linux-x86_64-deb",
+      ) !== null;
     expect(offered("3.0.1", "3.0.0")).toBe(true);
     expect(offered("3.1.1", "3.0.99")).toBe(true);
     expect(offered("3.0.0", "3.0.0")).toBe(false);
@@ -25,10 +34,64 @@ describe("release manifest", () => {
   });
 
   it("offers the download for the installed bundle, and fails a newer release without one", () => {
-    const manifest = { version: "3.1.1", platforms: { "linux-x86_64-rpm": asset } };
-    expect(pendingUpdate(manifest, "3.0.0", "linux-x86_64-rpm")).toEqual({ version: "3.1.1", ...asset });
+    const manifest = parseManifest({ version: "3.1.1", platforms: { "linux-x86_64-rpm": asset } });
+    expect(pendingUpdate(manifest, "3.0.0", "linux-x86_64-rpm")).toEqual({
+      version: "3.1.1",
+      manualInstall: false,
+      notices: [],
+      ...asset,
+    });
     expect(() => pendingUpdate(manifest, "3.0.0", "linux-x86_64-deb")).toThrow("no update for linux-x86_64-deb");
     expect(() => pendingUpdate(manifest, "3.0.0", null)).toThrow();
+  });
+
+  it("requires a fresh install below the minimum version", () => {
+    const manifest = parseManifest({ version: "3.1.1", minimumVersion: "3.0.0", platforms: {} });
+    expect(pendingUpdate(manifest, "2.9.9", "linux-x86_64-deb")).toEqual({
+      version: "3.1.1",
+      manualInstall: true,
+      notices: [],
+    });
+  });
+
+  it("selects notices for the installed version and platform", () => {
+    const manifest = parseManifest({
+      version: "3.1.1",
+      platforms: { "linux-x86_64-rpm": asset },
+      notices: [
+        { id: "linux", message: "Restart first", fromVersion: "3.0.0", throughVersion: "3.0.0", platforms: ["linux"] },
+        { id: "old", message: "Old version", fromVersion: "2.0.0", throughVersion: "2.9.9" },
+      ],
+    });
+    expect(pendingUpdate(manifest, "3.0.0", "linux-x86_64-rpm")?.notices.map(({ id }) => id)).toEqual(["linux"]);
+  });
+
+  it("collects published notes between installed and target versions", () => {
+    expect(
+      parseReleases(
+        [
+          {
+            tag_name: "v3.1.0",
+            draft: false,
+            prerelease: false,
+            published_at: "2026-01-01",
+            body: "* feat(ui): show progress by @a in https://x\n* fix: retry installs",
+          },
+          { tag_name: "v2.9.0", draft: false, prerelease: false, body: "* feat: too old" },
+        ],
+        "3.0.0",
+        "3.1.1",
+      ),
+    ).toEqual([
+      {
+        version: "3.1.0",
+        publishedAt: "2026-01-01",
+        changes: [
+          { kind: "new", scope: "ui", summary: "show progress" },
+          { kind: "fixed", scope: null, summary: "retry installs" },
+        ],
+      },
+    ]);
   });
 
   it("backs off a failed check up to the interval", () => {

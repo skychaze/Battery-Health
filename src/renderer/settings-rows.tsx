@@ -374,7 +374,7 @@ export function VersionRow() {
     setInstalling(true);
     setError(null);
     try {
-      await window.tether.invoke("installUpdate");
+      await window.tether.invoke("installUpdate", []);
     } catch (reason) {
       fail(reason);
     } finally {

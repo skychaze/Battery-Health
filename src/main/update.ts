@@ -1,17 +1,18 @@
 import { execFile, spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { access, mkdtemp, rename, rm, writeFile } from "node:fs/promises";
+import { access, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { promisify } from "node:util";
 import { app } from "electron";
-import type { AvailableUpdate } from "../shared/ipc";
-import { nextRetry, parseManifest, pendingUpdate, verifySignature } from "./release";
+import type { AvailableUpdate, InstallProgress, ReleaseNotes } from "../shared/ipc";
+import { nextRetry, parseManifest, parseReleases, pendingUpdate, verifySignature } from "./release";
 import type { PendingUpdate, PlatformKey } from "./release";
 
 export const MANIFEST_URL = "https://github.com/zytact/tether/releases/latest/download/latest.json";
 const CHECK_INTERVAL = 6 * 60 * 60 * 1000;
 const DOWNLOAD_TIMEOUT = 10 * 60 * 1000;
+const RELEASES_URL = "https://api.github.com/repos/zytact/tether/releases?per_page=100";
 
 const run = promisify(execFile);
 
@@ -40,14 +41,36 @@ function linuxPackageKey(): PlatformKey | null {
 export class Updater {
   private pending: PendingUpdate | null = null;
   private installing = false;
+  private progress: InstallProgress | null = null;
 
   constructor(
     private readonly manifestUrl: string | undefined,
-    private readonly announce: (update: AvailableUpdate) => void,
+    private readonly announce: (update: AvailableUpdate | null) => void,
+    private readonly report: (progress: InstallProgress | null) => void,
   ) {}
 
   available(): AvailableUpdate | null {
-    return this.pending && { version: this.pending.version };
+    return (
+      this.pending && {
+        version: this.pending.version,
+        manualInstall: this.pending.manualInstall,
+        notices: this.pending.notices,
+      }
+    );
+  }
+
+  installProgress() {
+    return this.progress;
+  }
+
+  async releaseNotes(): Promise<ReleaseNotes[]> {
+    if (!this.pending) throw new Error("No update is ready.");
+    const response = await fetch(RELEASES_URL, {
+      headers: { accept: "application/vnd.github+json" },
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!response.ok) throw new Error(`Could not load the release notes: GitHub returned ${response.status}`);
+    return parseReleases(await response.json(), app.getVersion(), this.pending.version);
   }
 
   async check(): Promise<AvailableUpdate | null> {
@@ -55,10 +78,10 @@ export class Updater {
     const response = await fetch(this.manifestUrl, { signal: AbortSignal.timeout(30_000) });
     if (!response.ok) throw new Error(`the release manifest returned ${response.status}`);
     const update = pendingUpdate(parseManifest(await response.json()), app.getVersion(), platformKey());
-    if (!update) return null;
     this.pending = update;
-    this.announce({ version: update.version });
-    return { version: update.version };
+    const available = this.available();
+    this.announce(available);
+    return available;
   }
 
   /** Checks at launch and every `CHECK_INTERVAL`, backing off after a failure. */
@@ -79,23 +102,47 @@ export class Updater {
 
   /** Downloads the pending update, verifies its signature, installs it, then relaunches into it. A
    * deb or rpm install asks for an administrator password through polkit. */
-  async install() {
-    const update = this.pending;
-    if (!update) throw new Error("No update is ready to install.");
+  async install(acknowledgedNoticeIds: string[]) {
+    const update = installableUpdate(this.pending, acknowledgedNoticeIds);
     if (this.installing) throw new Error("The update is already installing.");
     this.installing = true;
+    this.setProgress({ stage: "download", received: 0, total: null });
     try {
-      await installUpdate(update);
+      await installUpdate(update, (progress) => this.setProgress(progress));
     } finally {
       this.installing = false;
+      this.setProgress(null);
     }
+  }
+
+  private setProgress(progress: InstallProgress | null) {
+    this.progress = progress;
+    this.report(progress);
   }
 }
 
-async function installUpdate(update: PendingUpdate) {
+function installableUpdate(
+  update: PendingUpdate | null,
+  acknowledgedNoticeIds: string[],
+): Extract<PendingUpdate, { manualInstall: false }> {
+  if (!update) throw new Error("No update is ready to install.");
+  if (update.manualInstall)
+    throw new Error("This version needs a fresh install. Quit Tether and install the latest release.");
+  if (update.notices.some(({ id }) => !acknowledgedNoticeIds.includes(id))) {
+    throw new Error("Read and acknowledge the update notice before installing.");
+  }
+  return update;
+}
+
+async function installUpdate(
+  update: Extract<PendingUpdate, { manualInstall: false }>,
+  report: (progress: InstallProgress) => void,
+) {
   const directory = await mkdtemp(join(app.getPath("temp"), "tether-update-"));
   try {
-    await installFile(await download(update, directory));
+    const file = await download(update, directory, report);
+    report({ stage: "install" });
+    await installFile(file);
   } catch (error) {
     await removeDirectory(directory);
     throw error;
@@ -103,21 +150,50 @@ async function installUpdate(update: PendingUpdate) {
   // The NSIS installer still runs from the directory once the app exits, and starts the new version itself.
   if (process.platform !== "win32") {
     await removeDirectory(directory);
-    app.relaunch();
+    if (process.platform === "linux") {
+      await relaunchLinux().catch(() => app.relaunch());
+    } else app.relaunch();
   }
   app.exit(0);
 }
 
 /** Saves the update into `directory` once its signature checks out, and returns the file. */
-async function download(update: PendingUpdate, directory: string): Promise<string> {
+async function download(
+  update: Extract<PendingUpdate, { manualInstall: false }>,
+  directory: string,
+  report: (progress: InstallProgress) => void,
+): Promise<string> {
   // A stalled download would otherwise hold the install open, and every retry refused, for good.
   const response = await fetch(update.url, { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT) });
   if (!response.ok) throw new Error(`the download returned ${response.status}`);
-  const data = Buffer.from(await response.arrayBuffer());
+  const data = await readDownload(response, report);
   if (!verifySignature(data, update.signature)) throw new Error("the download failed its signature check");
   const file = join(directory, basename(new URL(update.url).pathname));
   await writeFile(file, data);
   return file;
+}
+
+async function readDownload(response: Response, report: (progress: InstallProgress) => void): Promise<Buffer> {
+  if (!response.body) throw new Error("the download was empty");
+  const total = downloadSize(response.headers);
+  const chunks: Uint8Array[] = [];
+  let received = 0;
+  let reportedAt = -Infinity;
+  for await (const chunk of response.body) {
+    chunks.push(chunk);
+    received += chunk.length;
+    if (performance.now() - reportedAt >= 100) {
+      report({ stage: "download", received, total });
+      reportedAt = performance.now();
+    }
+  }
+  report({ stage: "download", received, total });
+  return Buffer.concat(chunks);
+}
+
+function downloadSize(headers: Headers): number | null {
+  if (headers.has("content-encoding")) return null;
+  return Number(headers.get("content-length")) || null;
 }
 
 async function installFile(file: string) {
@@ -127,8 +203,34 @@ async function installFile(file: string) {
     case "darwin":
       return replaceAppBundle(file);
     default:
-      await run("pkexec", platformKey()?.endsWith("-rpm") ? ["rpm", "-U", file] : ["dpkg", "-i", file]);
+      return installLinuxPackage(file);
   }
+}
+
+async function installLinuxPackage(file: string) {
+  if (/^NoNewPrivs:\s*1$/m.test(await readFile("/proc/self/status", "utf8"))) {
+    throw new Error("Tether needs a restart first. Quit and reopen it, then install again.");
+  }
+  await run("pkexec", platformKey()?.endsWith("-rpm") ? ["rpm", "-U", file] : ["dpkg", "-i", file]);
+}
+
+async function relaunchLinux() {
+  const child = spawn(
+    "sh",
+    [
+      "-c",
+      'while kill -0 "$0" 2>/dev/null; do sleep 0.1; done; exec "$@"',
+      String(process.pid),
+      process.execPath,
+      ...process.argv.slice(1),
+    ],
+    { detached: true, stdio: "ignore" },
+  );
+  await new Promise<void>((resolve, reject) => {
+    child.once("spawn", resolve);
+    child.once("error", reject);
+  });
+  child.unref();
 }
 
 const removeDirectory = (directory: string) =>
