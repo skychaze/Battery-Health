@@ -74,30 +74,31 @@ export function nextRetry(retry: number | null, interval: number): number {
   return retry === null ? RETRY_START : Math.min(retry * 2, interval);
 }
 
-/** Releases are plain `major.minor.patch`. */
 export { isNewer } from "../shared/version";
 
 export function parseReleases(value: unknown, after: string, through: string): ReleaseNotes[] {
   if (!Array.isArray(value)) throw new Error("the release list is malformed");
   const releases = value.flatMap((release) => {
-    if (
-      !isRecord(release) ||
-      typeof release.tag_name !== "string" ||
-      release.draft !== false ||
-      release.prerelease !== false
-    )
-      return [];
+    if (!isPublishedRelease(release)) return [];
     const version = release.tag_name.replace(/^v/, "");
     if (!validVersion(version) || !isNewer(version, after) || isNewer(version, through)) return [];
-    return [
-      {
-        version,
-        publishedAt: typeof release.published_at === "string" ? release.published_at : null,
-        changes: typeof release.body === "string" ? parseChanges(release.body) : [],
-      },
-    ];
+    return [releaseNotes(release, version)];
   });
   return releases.sort((a, b) => (isNewer(a.version, b.version) ? -1 : isNewer(b.version, a.version) ? 1 : 0));
+}
+
+type PublishedRelease = { tag_name: string; body?: unknown; published_at?: unknown };
+
+function isPublishedRelease(value: unknown): value is PublishedRelease {
+  return isRecord(value) && typeof value.tag_name === "string" && value.draft === false && value.prerelease === false;
+}
+
+function releaseNotes(release: PublishedRelease, version: string): ReleaseNotes {
+  return {
+    version,
+    publishedAt: typeof release.published_at === "string" ? release.published_at : null,
+    changes: typeof release.body === "string" ? parseChanges(release.body) : [],
+  };
 }
 
 function parseChanges(body: string): ReleaseChange[] {

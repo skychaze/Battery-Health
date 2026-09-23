@@ -103,13 +103,7 @@ export class Updater {
   /** Downloads the pending update, verifies its signature, installs it, then relaunches into it. A
    * deb or rpm install asks for an administrator password through polkit. */
   async install(acknowledgedNoticeIds: string[]) {
-    const update = this.pending;
-    if (!update) throw new Error("No update is ready to install.");
-    if (update.manualInstall)
-      throw new Error("This version needs a fresh install. Quit Tether and install the latest release.");
-    if (update.notices.some(({ id }) => !acknowledgedNoticeIds.includes(id))) {
-      throw new Error("Read and acknowledge the update notice before installing.");
-    }
+    const update = installableUpdate(this.pending, acknowledgedNoticeIds);
     if (this.installing) throw new Error("The update is already installing.");
     this.installing = true;
     this.setProgress({ stage: "download", received: 0, total: null });
@@ -125,6 +119,19 @@ export class Updater {
     this.progress = progress;
     this.report(progress);
   }
+}
+
+function installableUpdate(
+  update: PendingUpdate | null,
+  acknowledgedNoticeIds: string[],
+): Extract<PendingUpdate, { manualInstall: false }> {
+  if (!update) throw new Error("No update is ready to install.");
+  if (update.manualInstall)
+    throw new Error("This version needs a fresh install. Quit Tether and install the latest release.");
+  if (update.notices.some(({ id }) => !acknowledgedNoticeIds.includes(id))) {
+    throw new Error("Read and acknowledge the update notice before installing.");
+  }
+  return update;
 }
 
 async function installUpdate(
@@ -159,10 +166,16 @@ async function download(
   // A stalled download would otherwise hold the install open, and every retry refused, for good.
   const response = await fetch(update.url, { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT) });
   if (!response.ok) throw new Error(`the download returned ${response.status}`);
+  const data = await readDownload(response, report);
+  if (!verifySignature(data, update.signature)) throw new Error("the download failed its signature check");
+  const file = join(directory, basename(new URL(update.url).pathname));
+  await writeFile(file, data);
+  return file;
+}
+
+async function readDownload(response: Response, report: (progress: InstallProgress) => void): Promise<Buffer> {
   if (!response.body) throw new Error("the download was empty");
-  const total = response.headers.has("content-encoding")
-    ? null
-    : Number(response.headers.get("content-length")) || null;
+  const total = downloadSize(response.headers);
   const chunks: Uint8Array[] = [];
   let received = 0;
   let reportedAt = -Infinity;
@@ -175,11 +188,12 @@ async function download(
     }
   }
   report({ stage: "download", received, total });
-  const data = Buffer.concat(chunks);
-  if (!verifySignature(data, update.signature)) throw new Error("the download failed its signature check");
-  const file = join(directory, basename(new URL(update.url).pathname));
-  await writeFile(file, data);
-  return file;
+  return Buffer.concat(chunks);
+}
+
+function downloadSize(headers: Headers): number | null {
+  if (headers.has("content-encoding")) return null;
+  return Number(headers.get("content-length")) || null;
 }
 
 async function installFile(file: string) {
@@ -189,11 +203,15 @@ async function installFile(file: string) {
     case "darwin":
       return replaceAppBundle(file);
     default:
-      if (/^NoNewPrivs:\s*1$/m.test(await readFile("/proc/self/status", "utf8"))) {
-        throw new Error("Tether needs a restart first. Quit and reopen it, then install again.");
-      }
-      await run("pkexec", platformKey()?.endsWith("-rpm") ? ["rpm", "-U", file] : ["dpkg", "-i", file]);
+      return installLinuxPackage(file);
   }
+}
+
+async function installLinuxPackage(file: string) {
+  if (/^NoNewPrivs:\s*1$/m.test(await readFile("/proc/self/status", "utf8"))) {
+    throw new Error("Tether needs a restart first. Quit and reopen it, then install again.");
+  }
+  await run("pkexec", platformKey()?.endsWith("-rpm") ? ["rpm", "-U", file] : ["dpkg", "-i", file]);
 }
 
 async function relaunchLinux() {
