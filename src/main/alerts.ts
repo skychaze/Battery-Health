@@ -1,4 +1,4 @@
-import type { BatteryReading } from "../shared/battery";
+import type { BatteryCharge } from "../shared/battery";
 import type { Settings } from "../shared/settings";
 
 export type Threshold = "above" | "below";
@@ -9,7 +9,7 @@ export type AlertSession = { threshold: Threshold; sent: number } | null;
 
 /** Charging at or above `above` crosses the high threshold, and discharging at or below `below` the low one.
  * Each needs the opposite charging state, so a reading crosses at most one. */
-export function crossedThreshold(settings: Settings, { percent, charging }: BatteryReading): Threshold | null {
+export function crossedThreshold(settings: Settings, { percent, charging }: BatteryCharge): Threshold | null {
   if (charging) return settings.aboveEnabled && percent >= settings.above ? "above" : null;
   return settings.belowEnabled && percent <= settings.below ? "below" : null;
 }

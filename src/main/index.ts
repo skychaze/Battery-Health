@@ -15,7 +15,7 @@ import appIcon from "../../build/icons/icon.png";
 import previewAppIcon from "../../build/icons/preview/icon.png";
 import previewTrayIcon from "../../build/icons/preview/tray.png";
 import trayIcon from "../../build/icons/tray.png";
-import { batteryLabel, batteryPercent } from "../shared/battery";
+import { batteryHealth, batteryLabel, healthLabel } from "../shared/battery";
 import type { BatteryCheck, WholePercent } from "../shared/battery";
 import { CURRENT } from "../shared/ipc";
 import type { AvailableUpdate, Commands, Events, Reply } from "../shared/ipc";
@@ -127,13 +127,13 @@ function createTray(check: () => BatteryCheck | null, update: () => AvailableUpd
   // own button.
   if (process.platform !== "darwin") tray.on("click", showWindow);
   const actions: Record<TrayAction, () => void> = { show: showWindow, quit: () => app.quit() };
-  let shownPercent: WholePercent | null = null;
+  let shownHealth: WholePercent | null = null;
   const render = () => {
     const latest = check();
-    const percent = batteryPercent(latest);
-    if (percent !== shownPercent) showPercent(tray, percent);
-    shownPercent = percent;
-    tray.setToolTip(`${identity.productName}\n${batteryLabel(latest)}`);
+    const health = batteryHealth(latest);
+    if (health !== shownHealth) showHealth(tray, health);
+    shownHealth = health;
+    tray.setToolTip(`${identity.productName}\n${batteryLabel(latest)}\n${healthLabel(latest)}`);
     tray.setContextMenu(
       Menu.buildFromTemplate(
         trayItems(latest, update(), identity.productName).map((item) =>
@@ -233,16 +233,16 @@ function trayImage() {
   return sized;
 }
 
-/** macOS writes the percent beside its template mark; elsewhere the percent replaces the mark, drawn in
- * the mark's color. Without a percent the tray shows the plain mark. */
-function showPercent(tray: Tray, percent: WholePercent | null) {
+/** macOS writes the health beside its template mark; elsewhere the health replaces the mark, drawn in
+ * the mark's color. Without a health reading the tray shows the plain mark. */
+function showHealth(tray: Tray, health: WholePercent | null) {
   if (process.platform === "darwin")
-    tray.setTitle(percent === null ? "" : `${percent}%`, { fontType: "monospacedDigit" });
-  else tray.setImage(percent === null ? trayImage() : percentImage(percent));
+    tray.setTitle(health === null ? "" : `${health}%`, { fontType: "monospacedDigit" });
+  else tray.setImage(health === null ? trayImage() : healthImage(health));
 }
 
-function percentImage(percent: WholePercent) {
-  const bitmap = percentIcon(percent, trayImage().toBitmap());
+function healthImage(health: WholePercent) {
+  const bitmap = percentIcon(health, trayImage().toBitmap());
   return nativeImage.createFromBitmap(bitmap, { width: TRAY_ICON_SIZE, height: TRAY_ICON_SIZE });
 }
 

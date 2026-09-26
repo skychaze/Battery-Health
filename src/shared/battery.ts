@@ -1,4 +1,7 @@
-export type BatteryReading = { percent: number; charging: boolean };
+export type BatteryCharge = { percent: number; charging: boolean };
+/** `health` is the full charge as a percent of the design capacity, or null when the battery does not
+ * report both. */
+export type BatteryReading = BatteryCharge & { health: number | null };
 
 /** The latest battery check, as the window and tray show it. `checkedAt` is an epoch in milliseconds. */
 export type BatteryCheck = { checkedAt: number } & (
@@ -6,23 +9,26 @@ export type BatteryCheck = { checkedAt: number } & (
   | { ok: false; error: string }
 );
 
-/** A whole number from 0 to 100. Only `batteryPercent` makes one. */
+/** A whole number from 0 to 100. Only `batteryHealth` makes one. */
 export type WholePercent = number & { readonly wholePercent: unique symbol };
 
-/** The latest reading as a whole percent, or null when there is none to trust. */
-export function batteryPercent(check: BatteryCheck | null): WholePercent | null {
-  return check?.ok ? (Math.min(100, Math.max(0, Math.round(check.reading.percent))) as WholePercent) : null;
+/** The latest health as a whole percent, or null when there is none to trust. A new battery can hold more
+ * than its design capacity, which counts as 100. */
+export function batteryHealth(check: BatteryCheck | null): WholePercent | null {
+  const health = check?.ok ? check.reading.health : null;
+  return health === null ? null : (Math.min(100, Math.max(0, Math.round(health))) as WholePercent);
 }
 
-/** What the latest check says besides the percent. */
-export function batteryState(check: BatteryCheck | null): string {
+/** One line for the tray and the window header. */
+export function batteryLabel(check: BatteryCheck | null): string {
   if (check === null) return "Checking the battery";
   if (!check.ok) return "Battery unavailable";
-  return check.reading.charging ? "Charging" : "Not charging";
+  return `${Math.round(check.reading.percent)}% · ${check.reading.charging ? "Charging" : "Not charging"}`;
 }
 
-/** One line for the tray menu and tooltip. */
-export function batteryLabel(check: BatteryCheck | null): string {
-  const percent = batteryPercent(check);
-  return percent === null ? batteryState(check) : `${percent}% · ${batteryState(check)}`;
+/** The health line for the tray. */
+export function healthLabel(check: BatteryCheck | null): string {
+  const health = batteryHealth(check);
+  if (health !== null) return `${health}% health`;
+  return check === null ? "Checking health" : "Health unavailable";
 }

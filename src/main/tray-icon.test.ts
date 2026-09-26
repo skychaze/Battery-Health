@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vite-plus/test";
-import { batteryPercent } from "../shared/battery";
+import { batteryHealth } from "../shared/battery";
 import { percentIcon, TRAY_ICON_SIZE } from "./tray-icon";
 
 const orange = [30, 83, 217, 255];
 // A mark with a translucent edge before its first opaque pixel, in BGRA like `nativeImage.toBitmap`.
 const mark = Buffer.from([0, 0, 0, 0, 30, 83, 217, 128, ...orange]);
 const icon = (value: number) =>
-  percentIcon(batteryPercent({ ok: true, reading: { percent: value, charging: false }, checkedAt: 0 })!, mark);
+  percentIcon(
+    batteryHealth({ ok: true, reading: { percent: 50, charging: false, health: value }, checkedAt: 0 })!,
+    mark,
+  );
 
 /** The lit pixels' bounding box, and the color of the first one. */
 function drawn(bitmap: Buffer) {

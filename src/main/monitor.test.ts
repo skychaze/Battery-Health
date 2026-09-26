@@ -9,7 +9,7 @@ let alerts: number;
 
 beforeEach(async () => {
   vi.useFakeTimers();
-  battery = { percent: 50, charging: false };
+  battery = { percent: 50, charging: false, health: null };
   alerts = 0;
   monitor = new Monitor(
     { ...defaultSettings, intervalSeconds: 60 },
@@ -22,7 +22,7 @@ afterEach(() => vi.useRealTimers());
 
 describe("monitor", () => {
   it("alerts on the interval while the battery is past a threshold", async () => {
-    battery = { percent: 10, charging: false };
+    battery = { percent: 10, charging: false, health: null };
     await vi.advanceTimersByTimeAsync(59_999);
     expect(alerts).toBe(0);
     await vi.advanceTimersByTimeAsync(1);
@@ -41,7 +41,7 @@ describe("monitor", () => {
   });
 
   it("keeps the next check through a sound change and restarts it on an interval change", async () => {
-    battery = { percent: 10, charging: false };
+    battery = { percent: 10, charging: false, health: null };
     await vi.advanceTimersByTimeAsync(30_000);
     monitor.update({ ...monitor.settings, soundPath: "/tmp/alert.wav" });
     await vi.advanceTimersByTimeAsync(30_000);
@@ -60,7 +60,8 @@ describe("monitor", () => {
     const slow = new Monitor(
       { ...defaultSettings, above: 90 },
       {
-        readBattery: () => new Promise((resolve) => (land = () => resolve({ percent: 85, charging: true }))),
+        readBattery: () =>
+          new Promise((resolve) => (land = () => resolve({ percent: 85, charging: true, health: null }))),
         alert: (reading) => readings.push(reading),
         checked: () => {},
       },

@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import type { BatteryReading } from "../shared/battery";
+import type { BatteryCharge, BatteryReading } from "../shared/battery";
 
 const run = promisify(execFile);
 
@@ -13,8 +13,13 @@ export async function readBattery(powerSupply = LINUX_POWER_SUPPLY): Promise<Bat
   switch (process.platform) {
     case "linux":
       return readLinuxBattery(powerSupply);
-    case "darwin":
-      return parsePmset((await run("pmset", ["-g", "batt"])).stdout);
+    case "darwin": {
+      const [batt, ioreg] = await Promise.all([
+        run("pmset", ["-g", "batt"]),
+        run("ioreg", ["-rn", "AppleSmartBattery"]).catch(() => ({ stdout: "" })),
+      ]);
+      return { ...parsePmset(batt.stdout), health: parseIoregHealth(ioreg.stdout) };
+    }
     case "win32":
       return parseWin32Battery(
         (await run("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", WIN32_QUERY])).stdout,
@@ -33,12 +38,17 @@ async function readLinuxBattery(root: string): Promise<BatteryReading> {
     );
   for (const name of (await readdir(root)).toSorted()) {
     if ((await read(name, "type")) !== "Battery" || (await read(name, "scope")) === "Device") continue;
-    return parseLinuxBattery(await read(name, "capacity"), await read(name, "status"));
+    const health = async (unit: "energy" | "charge") =>
+      percentOf(Number(await read(name, `${unit}_full`)), Number(await read(name, `${unit}_full_design`)));
+    return {
+      ...parseLinuxBattery(await read(name, "capacity"), await read(name, "status")),
+      health: (await health("energy")) ?? (await health("charge")),
+    };
   }
   throw new Error("No battery found.");
 }
 
-export function parseLinuxBattery(capacity: string | null, status: string | null): BatteryReading {
+export function parseLinuxBattery(capacity: string | null, status: string | null): BatteryCharge {
   const percent = Number(capacity);
   if (capacity === null || capacity === "" || !Number.isFinite(percent))
     throw new Error("The battery reports no charge.");
@@ -46,10 +56,17 @@ export function parseLinuxBattery(capacity: string | null, status: string | null
 }
 
 /** `pmset -g batt` prints a line such as ` -InternalBattery-0 (id=1234)	85%; charging; 1:02 remaining present: true`. */
-export function parsePmset(output: string): BatteryReading {
+export function parsePmset(output: string): BatteryCharge {
   const match = /InternalBattery.*?\t(\d+)%; ([^;]+);/.exec(output);
   if (!match) throw new Error("No battery found.");
   return { percent: Number(match[1]), charging: match[2] === "charging" || match[2] === "finishing charge" };
+}
+
+/** `ioreg -rn AppleSmartBattery` prints lines such as `"AppleRawMaxCapacity" = 4382`. Apple Silicon reports
+ * `MaxCapacity` as a percent, so the raw key is the one in the same unit as `DesignCapacity`. */
+export function parseIoregHealth(output: string): number | null {
+  const value = (key: string) => Number(new RegExp(`"${key}" = (\\d+)`).exec(output)?.[1]);
+  return percentOf(value("AppleRawMaxCapacity"), value("DesignCapacity"));
 }
 
 /** The battery driver's own status, from the same IOCTL data the Rust battery crate reads. `Win32_Battery` only
@@ -57,15 +74,25 @@ export function parsePmset(output: string): BatteryReading {
 const WIN32_QUERY = [
   "$status = Get-CimInstance -Namespace root/wmi -ClassName BatteryStatus | Select-Object -First 1",
   "$full = Get-CimInstance -Namespace root/wmi -ClassName BatteryFullChargedCapacity | Select-Object -First 1",
-  "if ($status) { @{ remaining = $status.RemainingCapacity; full = $full.FullChargedCapacity; charging = $status.Charging } | ConvertTo-Json -Compress }",
+  "$static = Get-CimInstance -Namespace root/wmi -ClassName BatteryStaticData -ErrorAction SilentlyContinue | Select-Object -First 1",
+  "if ($status) { @{ remaining = $status.RemainingCapacity; full = $full.FullChargedCapacity; design = $static.DesignedCapacity; charging = $status.Charging } | ConvertTo-Json -Compress }",
 ].join("; ");
 
 /** A machine without a battery makes the query print nothing. */
 export function parseWin32Battery(output: string): BatteryReading {
   if (output.trim() === "") throw new Error("No battery found.");
-  const { remaining, full, charging }: Record<string, unknown> = JSON.parse(output);
+  const { remaining, full, design, charging }: Record<string, unknown> = JSON.parse(output);
   if (typeof remaining !== "number" || typeof full !== "number" || full <= 0) {
     throw new Error("The battery reports no charge.");
   }
-  return { percent: (remaining / full) * 100, charging: charging === true };
+  return {
+    percent: (remaining / full) * 100,
+    charging: charging === true,
+    health: percentOf(full, Number(design)),
+  };
+}
+
+/** `part` as a percent of `whole`, or null unless both are positive numbers. */
+function percentOf(part: number, whole: number) {
+  return part > 0 && whole > 0 ? (part / whole) * 100 : null;
 }

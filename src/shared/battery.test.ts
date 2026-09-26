@@ -1,19 +1,26 @@
 import { describe, expect, it } from "vite-plus/test";
-import { batteryLabel, batteryPercent } from "./battery";
+import { batteryHealth, healthLabel } from "./battery";
 
-const reading = (percent: number) => ({ ok: true as const, reading: { percent, charging: false }, checkedAt: 0 });
+const reading = (health: number | null) => ({
+  ok: true as const,
+  reading: { percent: 50, charging: false, health },
+  checkedAt: 0,
+});
 
-describe("battery percent", () => {
-  it("rounds the reading and keeps it between 0 and 100", () => {
-    expect([84.5, 100.4, 103, -2].map((percent) => batteryPercent(reading(percent)))).toEqual([85, 100, 100, 0]);
+describe("battery health", () => {
+  it("rounds the health and counts more than the design capacity as 100", () => {
+    expect([84.5, 100.4, 103].map((health) => batteryHealth(reading(health)))).toEqual([85, 100, 100]);
   });
 
-  it("has no percent until a reading succeeds", () => {
-    expect(batteryPercent(null)).toBeNull();
-    expect(batteryPercent({ ok: false, error: "No battery found.", checkedAt: 0 })).toBeNull();
+  it("has no health without a reading that reports it", () => {
+    expect(batteryHealth(null)).toBeNull();
+    expect(batteryHealth(reading(null))).toBeNull();
+    expect(batteryHealth({ ok: false, error: "No battery found.", checkedAt: 0 })).toBeNull();
   });
 
-  it("labels the tray with the same clamped percent", () => {
-    expect(batteryLabel(reading(103))).toBe("100% · Not charging");
+  it("labels the health for the tray", () => {
+    expect(healthLabel(null)).toBe("Checking health");
+    expect(healthLabel(reading(86.6))).toBe("87% health");
+    expect(healthLabel(reading(null))).toBe("Health unavailable");
   });
 });

@@ -62,7 +62,7 @@ else
   echo $! >"$RUN_DIR/audio-poller.pid"
   readlink -f "$(command -v bash)" >"$RUN_DIR/audio-poller.exe"
 
-  [ "$MODE" = fake ] && "$SKILL_DIR/scripts/battery.sh" Discharging 50 >/dev/null
+  [ "$MODE" = fake ] && "$SKILL_DIR/scripts/battery.sh" Discharging 50 87 >/dev/null
   if [ -n "$SEED" ]; then
     mkdir -p "$SCRATCH_HOME/config/dev.arnab.tether.preview"
     printf '%s\n' "$SEED" >"$SCRATCH_HOME/config/dev.arnab.tether.preview/settings.json"
