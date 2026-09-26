@@ -6,9 +6,12 @@ export type BatteryCheck = { checkedAt: number } & (
   | { ok: false; error: string }
 );
 
-/** The latest reading as a whole percent from 0 to 100, or null when there is none to trust. */
-export function batteryPercent(check: BatteryCheck | null): number | null {
-  return check?.ok ? Math.min(100, Math.max(0, Math.round(check.reading.percent))) : null;
+/** A whole number from 0 to 100. Only `batteryPercent` makes one. */
+export type WholePercent = number & { readonly wholePercent: unique symbol };
+
+/** The latest reading as a whole percent, or null when there is none to trust. */
+export function batteryPercent(check: BatteryCheck | null): WholePercent | null {
+  return check?.ok ? (Math.min(100, Math.max(0, Math.round(check.reading.percent))) as WholePercent) : null;
 }
 
 /** What the latest check says besides the percent. */

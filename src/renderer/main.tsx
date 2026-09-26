@@ -16,7 +16,7 @@ function App() {
         <h1>Tether</h1>
         <div className="battery">
           <p className="level" data-hidden={percent === null}>
-            {percent ?? 0}
+            {percent}
             <span>%</span>
           </p>
           <p className="status" title={check?.ok === false ? check.error : undefined}>

@@ -46,9 +46,12 @@ case "${1:-}" in
       python3 -c '
 import re, shutil, sys
 props = sys.stdin.read()
-path = re.search(r"'"'"'IconThemePath'"'"': <'"'"'(.*?)'"'"'>", props).group(1)
-name = re.search(r"'"'"'IconName'"'"': <'"'"'(.*?)'"'"'>", props).group(1)
+path = re.search(r"'"'"'IconThemePath'"'"': <'"'"'(.*?)'"'"'>", props)
+name = re.search(r"'"'"'IconName'"'"': <'"'"'(.*?)'"'"'>", props)
 tooltip = re.search(r"'"'"'ToolTip'"'"': <\(.*?, .*?, '"'"'(.*?)'"'"', '"'"'(.*?)'"'"'\)>", props)
+if not (path and name and tooltip):
+    sys.exit(f"The tray item did not publish an icon file and tooltip:\n{props}")
+path, name = path.group(1), name.group(1)
 shutil.copy(f"{path}/{name}.png", sys.argv[1])
 print(f"ICON {sys.argv[1]}")
 print("TOOLTIP", " | ".join(part for part in tooltip.groups() if part).replace("\\n", " / "))

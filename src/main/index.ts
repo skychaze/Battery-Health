@@ -16,7 +16,7 @@ import previewAppIcon from "../../build/icons/preview/icon.png";
 import previewTrayIcon from "../../build/icons/preview/tray.png";
 import trayIcon from "../../build/icons/tray.png";
 import { batteryLabel, batteryPercent } from "../shared/battery";
-import type { BatteryCheck } from "../shared/battery";
+import type { BatteryCheck, WholePercent } from "../shared/battery";
 import { CURRENT } from "../shared/ipc";
 import type { AvailableUpdate, Commands, Events, Reply } from "../shared/ipc";
 import { readBattery } from "./battery";
@@ -127,15 +127,16 @@ function createTray(check: () => BatteryCheck | null, update: () => AvailableUpd
   // own button.
   if (process.platform !== "darwin") tray.on("click", showWindow);
   const actions: Record<TrayAction, () => void> = { show: showWindow, quit: () => app.quit() };
-  let shownPercent: number | null = null;
+  let shownPercent: WholePercent | null = null;
   const render = () => {
-    const percent = batteryPercent(check());
+    const latest = check();
+    const percent = batteryPercent(latest);
     if (percent !== shownPercent) showPercent(tray, percent);
     shownPercent = percent;
-    tray.setToolTip(`${identity.productName}\n${batteryLabel(check())}`);
+    tray.setToolTip(`${identity.productName}\n${batteryLabel(latest)}`);
     tray.setContextMenu(
       Menu.buildFromTemplate(
-        trayItems(check(), update(), identity.productName).map((item) =>
+        trayItems(latest, update(), identity.productName).map((item) =>
           item === "separator"
             ? { type: "separator" }
             : {
@@ -234,14 +235,14 @@ function trayImage() {
 
 /** macOS writes the percent beside its template mark; elsewhere the percent replaces the mark, drawn in
  * the mark's color. Without a percent the tray shows the plain mark. */
-function showPercent(tray: Tray, percent: number | null) {
+function showPercent(tray: Tray, percent: WholePercent | null) {
   if (process.platform === "darwin")
     tray.setTitle(percent === null ? "" : `${percent}%`, { fontType: "monospacedDigit" });
   else tray.setImage(percent === null ? trayImage() : percentImage(percent));
 }
 
-function percentImage(percent: number) {
-  const bitmap = percentIcon(percent, preview ? [76, 110, 245] : [217, 83, 30]);
+function percentImage(percent: WholePercent) {
+  const bitmap = percentIcon(percent, trayImage().toBitmap());
   return nativeImage.createFromBitmap(bitmap, { width: TRAY_ICON_SIZE, height: TRAY_ICON_SIZE });
 }
 
