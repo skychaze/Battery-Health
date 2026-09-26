@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Set the fake battery the running preview reads on its next check.
 # Usage: battery.sh <Charging|Discharging|Full|Not charging> <percent 0-100>
+# A percent that is not a number makes the battery unreadable.
 set -euo pipefail
 . "$(dirname "$0")/common.sh"
 status="${1:?usage: battery.sh <Charging|Discharging|Full|Not charging> <percent>}"

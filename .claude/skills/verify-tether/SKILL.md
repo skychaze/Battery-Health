@@ -73,14 +73,15 @@ node $S/drive.ts screenshot "$EVIDENCE" settings
 node $S/drive.ts close
 ```
 
-The handles are: spinbuttons `High battery level`, `Low battery level`, `Alerts per crossing`, `Check every`; switches `High battery alerts`, `Low battery alerts`, `Open at login`; buttons `Choose` and `Clear` for the sound; combobox `Urgency`; buttons `Check for updates` and, while a release is on offer, `Install update`. The header paragraph reads the latest check, such as `12% · Not charging`. A rejected entry shows an `alert` with the reason and puts the saved value back. `fill` commits with Enter, which is how the window saves a number.
+The handles are: spinbuttons `High battery level`, `Low battery level`, `Alerts per crossing`, `Check every`; switches `High battery alerts`, `Low battery alerts`, `Open at login`; buttons `Choose` and `Clear` for the sound; combobox `Urgency`; buttons `Check for updates` and, while a release is on offer, `Install update`. The header shows the latest check as two paragraphs, the level such as `12%` and the state such as `Not charging`. Without a reading only the state shows, such as `Battery unavailable`. A rejected entry shows an `alert` with the reason and puts the saved value back. `fill` commits with Enter, which is how the window saves a number.
 
-Read and click the tray menu:
+Read and click the tray menu, and save the tray icon with its tooltip:
 
 ```sh
 $S/tray.sh layout
 $S/tray.sh click "Open Tether Preview"
 $S/tray.sh click Quit
+$S/tray.sh icon "$EVIDENCE" tray-12
 ```
 
 `close` destroys the window and leaves the monitor in the tray. `drive.ts` then reports no window until the tray reopens it.
@@ -131,7 +132,7 @@ All scripts live in `scripts/` and are executable:
 - `doctor.sh` checks the instance without changing it.
 - `battery.sh <status> <percent>` rewrites the fake battery.
 - `drive.ts <snapshot | click ROLE NAME | fill LABEL VALUE | select LABEL OPTION | screenshot DIR [NAME] | close>` drives the window. Run it with `node`.
-- `tray.sh <layout | click LABEL>` reads or clicks the tray menu.
+- `tray.sh <layout | click LABEL | icon DIR [NAME]>` reads or clicks the tray menu, or saves the tray icon and prints its tooltip.
 - `collect.sh <dir>` copies and parses the recordings.
 - `cleanup.sh` stops what the harness started and keeps evidence.
 

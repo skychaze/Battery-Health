@@ -15,9 +15,10 @@ import appIcon from "../../build/icons/icon.png";
 import previewAppIcon from "../../build/icons/preview/icon.png";
 import previewTrayIcon from "../../build/icons/preview/tray.png";
 import trayIcon from "../../build/icons/tray.png";
+import { batteryLabel, batteryPercent } from "../shared/battery";
 import type { BatteryCheck } from "../shared/battery";
 import { CURRENT } from "../shared/ipc";
-import type { Commands, Events, Reply } from "../shared/ipc";
+import type { AvailableUpdate, Commands, Events, Reply } from "../shared/ipc";
 import { readBattery } from "./battery";
 import { identities } from "./identity";
 import { Monitor } from "./monitor";
@@ -25,8 +26,9 @@ import { alertNotification } from "./notification";
 import { launchedHidden, openAtLogin, setOpenAtLogin } from "./open-at-login";
 import { changeSettings, loadSettings, saveSettings } from "./settings";
 import { SoundPlayer } from "./sound";
+import { percentIcon, TRAY_ICON_SIZE } from "./tray-icon";
 import { trayItems } from "./tray-menu";
-import type { TrayAction, TrayItem } from "./tray-menu";
+import type { TrayAction } from "./tray-menu";
 import { MANIFEST_URL, Updater } from "./update";
 
 const identity = app.getName() === identities.preview.productName ? identities.preview : identities.release;
@@ -86,7 +88,10 @@ function start() {
     },
     (progress) => publish("installProgress", progress),
   );
-  const renderTray = createTray(() => trayItems(lastCheck, updater.available(), identity.productName));
+  const renderTray = createTray(
+    () => lastCheck,
+    () => updater.available(),
+  );
   const monitor = new Monitor(loadSettings(settingsPath), {
     readBattery: () => readBattery(powerSupply),
     alert: (reading, settings) => {
@@ -115,18 +120,22 @@ function start() {
   void updater.watch();
 }
 
-/** Returns what redraws the menu from the latest `items`. */
-function createTray(items: () => TrayItem[]) {
+/** Returns what redraws the tray from the latest `check` and `update`. */
+function createTray(check: () => BatteryCheck | null, update: () => AvailableUpdate | null) {
   const tray = new Tray(trayImage());
-  tray.setToolTip(identity.productName);
   // macOS opens the menu on a left click; elsewhere the click opens the window and the menu keeps its
   // own button.
   if (process.platform !== "darwin") tray.on("click", showWindow);
   const actions: Record<TrayAction, () => void> = { show: showWindow, quit: () => app.quit() };
-  const render = () =>
+  let shownPercent: number | null = null;
+  const render = () => {
+    const percent = batteryPercent(check());
+    if (percent !== shownPercent) showPercent(tray, percent);
+    shownPercent = percent;
+    tray.setToolTip(`${identity.productName}\n${batteryLabel(check())}`);
     tray.setContextMenu(
       Menu.buildFromTemplate(
-        items().map((item) =>
+        trayItems(check(), update(), identity.productName).map((item) =>
           item === "separator"
             ? { type: "separator" }
             : {
@@ -137,6 +146,7 @@ function createTray(items: () => TrayItem[]) {
         ),
       ),
     );
+  };
   render();
   return render;
 }
@@ -220,6 +230,19 @@ function trayImage() {
   sized.addRepresentation({ scaleFactor: 2, buffer: image.resize({ height: 36, quality: "best" }).toPNG() });
   sized.setTemplateImage(!preview);
   return sized;
+}
+
+/** macOS writes the percent beside its template mark; elsewhere the percent replaces the mark, drawn in
+ * the mark's color. Without a percent the tray shows the plain mark. */
+function showPercent(tray: Tray, percent: number | null) {
+  if (process.platform === "darwin")
+    tray.setTitle(percent === null ? "" : `${percent}%`, { fontType: "monospacedDigit" });
+  else tray.setImage(percent === null ? trayImage() : percentImage(percent));
+}
+
+function percentImage(percent: number) {
+  const bitmap = percentIcon(percent, preview ? [76, 110, 245] : [217, 83, 30]);
+  return nativeImage.createFromBitmap(bitmap, { width: TRAY_ICON_SIZE, height: TRAY_ICON_SIZE });
 }
 
 function publish<E extends keyof Events>(event: E, payload: Events[E]) {

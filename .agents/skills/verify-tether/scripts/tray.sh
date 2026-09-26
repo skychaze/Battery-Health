@@ -4,6 +4,7 @@
 # tray host (a StatusNotifierWatcher) running when the preview launches.
 #   tray.sh layout            print each item as ID<TAB>enabled<TAB>label
 #   tray.sh click <label>     click the item with exactly this label
+#   tray.sh icon <dir> [name] save the icon as <dir>/<name>.png (default tray-icon) and print the tooltip
 set -euo pipefail
 . "$(dirname "$0")/common.sh"
 owned_alive "$RUN_DIR/run.pid" "$BIN" || { echo "No harness preview is running." >&2; exit 1; }
@@ -36,5 +37,22 @@ case "${1:-}" in
       --method com.canonical.dbusmenu.Event -- "$id" clicked '<"">' 0 >/dev/null
     echo "CLICKED tray \"$label\""
     ;;
-  *) echo "usage: tray.sh <layout | click LABEL>" >&2; exit 2 ;;
+  icon)
+    dir="${2:?usage: tray.sh icon <dir> [name]}"
+    out="$dir/${3:-tray-icon}.png"
+    # Electron writes the icon to a file and publishes its directory and name, not a pixmap.
+    gdbus call --session --dest "$dest" --object-path /StatusNotifierItem \
+      --method org.freedesktop.DBus.Properties.GetAll org.kde.StatusNotifierItem |
+      python3 -c '
+import re, shutil, sys
+props = sys.stdin.read()
+path = re.search(r"'"'"'IconThemePath'"'"': <'"'"'(.*?)'"'"'>", props).group(1)
+name = re.search(r"'"'"'IconName'"'"': <'"'"'(.*?)'"'"'>", props).group(1)
+tooltip = re.search(r"'"'"'ToolTip'"'"': <\(.*?, .*?, '"'"'(.*?)'"'"', '"'"'(.*?)'"'"'\)>", props)
+shutil.copy(f"{path}/{name}.png", sys.argv[1])
+print(f"ICON {sys.argv[1]}")
+print("TOOLTIP", " | ".join(part for part in tooltip.groups() if part).replace("\\n", " / "))
+' "$out"
+    ;;
+  *) echo "usage: tray.sh <layout | click LABEL | icon DIR [NAME]>" >&2; exit 2 ;;
 esac

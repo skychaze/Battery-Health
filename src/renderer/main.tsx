@@ -2,20 +2,25 @@ import "@fontsource-variable/inter-tight/wght.css";
 import "@fontsource/newsreader/latin-400.css";
 import "@fontsource/newsreader/latin-500.css";
 import { createRoot } from "react-dom/client";
-import { batteryLabel } from "../shared/battery";
+import { batteryPercent, batteryState } from "../shared/battery";
 import { usePublishedState } from "./published-state";
 import { AlertSettings, OpenAtLoginRow, VersionRow } from "./settings-rows";
 import "./styles.css";
 
 function App() {
   const [check] = usePublishedState("batteryCheck");
+  const percent = batteryPercent(check);
   return (
     <main>
       <header>
-        <div>
-          <h1>Tether</h1>
+        <h1>Tether</h1>
+        <div className="battery">
+          <p className="level" data-hidden={percent === null}>
+            {percent ?? 0}
+            <span>%</span>
+          </p>
           <p className="status" title={check?.ok === false ? check.error : undefined}>
-            {batteryLabel(check)}
+            {batteryState(check)}
           </p>
         </div>
       </header>
