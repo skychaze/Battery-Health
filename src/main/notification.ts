@@ -1,11 +1,11 @@
 import type { NotificationConstructorOptions } from "electron";
-import type { BatteryReading } from "../shared/battery";
+import type { BatteryCharge } from "../shared/battery";
 import type { Settings } from "../shared/settings";
 
 /** The alert for a reading. A chosen sound replaces the notification's own, and urgency is set only on Linux,
  * the one platform whose notification servers read it. */
 export function alertNotification(
-  { percent, charging }: BatteryReading,
+  { percent, charging }: BatteryCharge,
   { soundPath, urgency }: Settings,
   platform: NodeJS.Platform,
 ): NotificationConstructorOptions {

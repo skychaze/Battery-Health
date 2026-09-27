@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { parseLinuxBattery, parsePmset, parseWin32Battery } from "./battery";
+import { parseIoregHealth, parseLinuxBattery, parsePmset, parseWin32Battery } from "./battery";
 
 describe("battery readings", () => {
   it("counts only a charging status as charging on Linux", () => {
@@ -19,11 +19,23 @@ describe("battery readings", () => {
   });
 
   it("reads the Windows battery driver status", () => {
-    expect(parseWin32Battery('{"remaining":9500,"full":50000,"charging":false}')).toEqual({
+    expect(parseWin32Battery('{"remaining":9500,"full":50000,"design":62500,"charging":false}')).toEqual({
       percent: 19,
       charging: false,
+      health: 80,
     });
     expect(parseWin32Battery('{"remaining":50000,"full":50000,"charging":true}').charging).toBe(true);
     expect(() => parseWin32Battery("\r\n")).toThrow("No battery");
+  });
+
+  it("has no Windows health without a design capacity", () => {
+    expect(parseWin32Battery('{"remaining":9500,"full":50000,"charging":false}').health).toBeNull();
+    expect(parseWin32Battery('{"remaining":9500,"full":50000,"design":0,"charging":false}').health).toBeNull();
+  });
+
+  it("reads the raw full charge against the design capacity from ioreg", () => {
+    const ioreg = `  "MaxCapacity" = 92\n  "AppleRawMaxCapacity" = 4400\n  "DesignCapacity" = 5000\n`;
+    expect(parseIoregHealth(ioreg)).toBe(88);
+    expect(parseIoregHealth(`  "MaxCapacity" = 92\n`)).toBeNull();
   });
 });

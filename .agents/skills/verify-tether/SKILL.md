@@ -37,7 +37,7 @@ $S/launch.sh --settings "{\"intervalSeconds\":2,\"notifyAttempts\":3,\"soundPath
 $S/doctor.sh
 ```
 
-Ready means `launch.sh` prints `Ready: Tether Preview` and `doctor.sh` ends with `DOCTOR: worth driving`. The fake battery starts at `Discharging 50%`, which crosses no default threshold.
+Ready means `launch.sh` prints `Ready: Tether Preview` and `doctor.sh` ends with `DOCTOR: worth driving`. The fake battery starts at `Discharging 50%` with 87% health, which crosses no default threshold.
 
 - `--settings JSON` seeds `settings.json` before the first launch. Use it for a short interval and a sound path, since the file chooser is a native dialog the harness cannot drive. Fields left out take their defaults.
 - `--real-battery` skips the fake tree and reads the machine's battery. Use it once to confirm the fake tree is not lying.
@@ -60,7 +60,11 @@ Set the battery. The app reads it on its next check:
 ```sh
 $S/battery.sh Discharging 12
 $S/battery.sh Charging 90
+$S/battery.sh Charging 90 64
+$S/battery.sh Charging 90 none
 ```
+
+The optional third argument sets the health, and `none` makes the battery report none. Without it the health stays as it was.
 
 Drive the window by ARIA role and accessible name, as `snapshot` prints them:
 
@@ -73,14 +77,15 @@ node $S/drive.ts screenshot "$EVIDENCE" settings
 node $S/drive.ts close
 ```
 
-The handles are: spinbuttons `High battery level`, `Low battery level`, `Alerts per crossing`, `Check every`; switches `High battery alerts`, `Low battery alerts`, `Open at login`; buttons `Choose` and `Clear` for the sound; combobox `Urgency`; buttons `Check for updates` and, while a release is on offer, `Install update`. The header paragraph reads the latest check, such as `12% · Not charging`. A rejected entry shows an `alert` with the reason and puts the saved value back. `fill` commits with Enter, which is how the window saves a number.
+The handles are: spinbuttons `High battery level`, `Low battery level`, `Alerts per crossing`, `Check every`; switches `High battery alerts`, `Low battery alerts`, `Open at login`; buttons `Choose` and `Clear` for the sound; combobox `Urgency`; buttons `Check for updates` and, while a release is on offer, `Install update`. The header paragraph reads the latest check, such as `12% · Not charging`. Beside it the health reads as two paragraphs, `87%` and `Health`, or only `Health unavailable` when the battery reports none. A rejected entry shows an `alert` with the reason and puts the saved value back. `fill` commits with Enter, which is how the window saves a number.
 
-Read and click the tray menu:
+Read and click the tray menu, and save the tray icon with its tooltip:
 
 ```sh
 $S/tray.sh layout
 $S/tray.sh click "Open Tether Preview"
 $S/tray.sh click Quit
+$S/tray.sh icon "$EVIDENCE" tray-12
 ```
 
 `close` destroys the window and leaves the monitor in the tray. `drive.ts` then reports no window until the tray reopens it.
@@ -129,9 +134,9 @@ All scripts live in `scripts/` and are executable:
 - `build-preview.sh` builds the unpacked preview app.
 - `launch.sh [--real-battery] [--settings JSON] | --restart` starts the preview with its display, recorders, and fake battery.
 - `doctor.sh` checks the instance without changing it.
-- `battery.sh <status> <percent>` rewrites the fake battery.
+- `battery.sh <status> <percent> [health | none]` rewrites the fake battery.
 - `drive.ts <snapshot | click ROLE NAME | fill LABEL VALUE | select LABEL OPTION | screenshot DIR [NAME] | close>` drives the window. Run it with `node`.
-- `tray.sh <layout | click LABEL>` reads or clicks the tray menu.
+- `tray.sh <layout | click LABEL | icon DIR [NAME]>` reads or clicks the tray menu, or saves the tray icon and prints its tooltip.
 - `collect.sh <dir>` copies and parses the recordings.
 - `cleanup.sh` stops what the harness started and keeps evidence.
 

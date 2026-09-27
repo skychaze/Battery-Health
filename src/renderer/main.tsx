@@ -2,13 +2,14 @@ import "@fontsource-variable/inter-tight/wght.css";
 import "@fontsource/newsreader/latin-400.css";
 import "@fontsource/newsreader/latin-500.css";
 import { createRoot } from "react-dom/client";
-import { batteryLabel } from "../shared/battery";
+import { batteryHealth, batteryLabel, healthLabel } from "../shared/battery";
 import { usePublishedState } from "./published-state";
 import { AlertSettings, OpenAtLoginRow, VersionRow } from "./settings-rows";
 import "./styles.css";
 
 function App() {
   const [check] = usePublishedState("batteryCheck");
+  const health = batteryHealth(check);
   return (
     <main>
       <header>
@@ -17,6 +18,13 @@ function App() {
           <p className="status" title={check?.ok === false ? check.error : undefined}>
             {batteryLabel(check)}
           </p>
+        </div>
+        <div className="health">
+          <p className="level" data-hidden={health === null}>
+            {health}
+            <span>%</span>
+          </p>
+          <p className="status">{health === null ? healthLabel(check) : "Health"}</p>
         </div>
       </header>
 
