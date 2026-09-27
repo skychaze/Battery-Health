@@ -40,6 +40,8 @@ $S/doctor.sh
 Ready means `launch.sh` prints `Ready: Tether Preview` and `doctor.sh` ends with `DOCTOR: worth driving`. The fake battery starts at `Discharging 50%` with 87% health, which crosses no default threshold.
 
 - `--settings JSON` seeds `settings.json` before the first launch. Use it for a short interval and a sound path, since the file chooser is a native dialog the harness cannot drive. Fields left out take their defaults.
+- `--health N | none` sets the fake battery's starting health instead of 87%.
+- `--history JSON` seeds `health-history.json`, an array of `{"day":"YYYY-MM-DD","health":N}` samples, since the app records at most one a day.
 - `--real-battery` skips the fake tree and reads the machine's battery. Use it once to confirm the fake tree is not lying.
 - `--restart` quits and relaunches only the preview, keeping the display, recorders, battery, and saved settings. That is how a proof shows a setting survives a restart.
 
@@ -73,11 +75,13 @@ node $S/drive.ts snapshot
 node $S/drive.ts fill "Low battery level" 15
 node $S/drive.ts click switch "High battery alerts"
 node $S/drive.ts select Urgency Critical
+node $S/drive.ts hover img "Battery health"
+node $S/drive.ts press img "Battery health" ArrowLeft
 node $S/drive.ts screenshot "$EVIDENCE" settings
 node $S/drive.ts close
 ```
 
-The handles are: spinbuttons `High battery level`, `Low battery level`, `Alerts per crossing`, `Check every`; switches `High battery alerts`, `Low battery alerts`, `Open at login`; buttons `Choose` and `Clear` for the sound; combobox `Urgency`; buttons `Check for updates` and, while a release is on offer, `Install update`. The header paragraph reads the latest check, such as `12% · Not charging`. Beside it the health reads as two paragraphs, `87%` and `Health`, or only `Health unavailable` when the battery reports none. A rejected entry shows an `alert` with the reason and puts the saved value back. `fill` commits with Enter, which is how the window saves a number.
+The handles are: spinbuttons `High battery level`, `Low battery level`, `Alerts per crossing`, `Check every`; switches `High battery alerts`, `Low battery alerts`, `Open at login`; buttons `Choose` and `Clear` for the sound; combobox `Urgency`; buttons `Check for updates` and, while a release is on offer, `Install update`. The header paragraph reads the latest check, such as `12% · Not charging`. Beside it the health reads as two paragraphs, `87%` and `Health`, or only `Health unavailable` when the battery reports none. Below the header, `Health over time` is an `img` whose name starts with `Battery health went from`, a paragraph saying the graph appears after the second day, or nothing when no health was ever saved. A rejected entry shows an `alert` with the reason and puts the saved value back. `fill` commits with Enter, which is how the window saves a number.
 
 Read and click the tray menu, and save the tray icon with its tooltip:
 
@@ -107,6 +111,7 @@ Run it after each step worth proving; it reflects everything since launch. It wr
 | `battery-timeline.log` | every launch and battery change, with times |
 | `preview.log` | the app's own errors, such as `Failed to play` or `Skipped the alert sound` |
 | `settings.json` | what the app saved |
+| `health-history.json` | the daily health samples the app saved |
 
 Add screenshots with `drive.ts screenshot` after each materially different window state, and a short `notes.md` naming what was covered and what could not be.
 
@@ -132,10 +137,10 @@ It stops only the preview, Xvfb, and the two recorders that `launch.sh` recorded
 All scripts live in `scripts/` and are executable:
 
 - `build-preview.sh` builds the unpacked preview app.
-- `launch.sh [--real-battery] [--settings JSON] | --restart` starts the preview with its display, recorders, and fake battery.
+- `launch.sh [--real-battery] [--health N | none] [--settings JSON] [--history JSON] | --restart` starts the preview with its display, recorders, and fake battery.
 - `doctor.sh` checks the instance without changing it.
 - `battery.sh <status> <percent> [health | none]` rewrites the fake battery.
-- `drive.ts <snapshot | click ROLE NAME | fill LABEL VALUE | select LABEL OPTION | screenshot DIR [NAME] | close>` drives the window. Run it with `node`.
+- `drive.ts <snapshot | click ROLE NAME | hover ROLE NAME | press ROLE NAME KEY | fill LABEL VALUE | select LABEL OPTION | screenshot DIR [NAME] | close>` drives the window. Run it with `node`.
 - `tray.sh <layout | click LABEL | icon DIR [NAME]>` reads or clicks the tray menu, or saves the tray icon and prints its tooltip.
 - `collect.sh <dir>` copies and parses the recordings.
 - `cleanup.sh` stops what the harness started and keeps evidence.

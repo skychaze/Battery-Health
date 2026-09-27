@@ -1,6 +1,8 @@
 // Drive the running preview's window over the Chrome DevTools Protocol that launch.sh opened.
 //   drive.ts snapshot                       print the page's accessibility tree
 //   drive.ts click <role> <name>            click an element by ARIA role and accessible name
+//   drive.ts hover <role> <name>            rest the pointer on an element's center
+//   drive.ts press <role> <name> <key>      focus an element and press a key, such as ArrowLeft
 //   drive.ts fill <label> <value>           type into a number field and commit it with Enter
 //   drive.ts select <label> <option>        pick an option in a select by its label
 //   drive.ts screenshot <dir> [name]        save the window as <dir>/<name>.png
@@ -29,6 +31,14 @@ try {
       await page.getByRole(args[0], { name: args[1], exact: true }).click();
       console.log(`CLICKED ${args[0]} "${args[1]}"`);
       break;
+    case "hover":
+      await page.getByRole(args[0], { name: args[1] }).hover();
+      console.log(`HOVERED ${args[0]} "${args[1]}"`);
+      break;
+    case "press":
+      await page.getByRole(args[0], { name: args[1] }).press(args[2]);
+      console.log(`PRESSED ${args[2]} on ${args[0]} "${args[1]}"`);
+      break;
     case "fill": {
       const field = page.getByLabel(args[0], { exact: true });
       await field.fill(args[1]);
@@ -51,7 +61,7 @@ try {
       console.log("CLOSED the window");
       break;
     default:
-      throw new Error("usage: drive.ts <snapshot | click ROLE NAME | fill LABEL VALUE | select LABEL OPTION | screenshot DIR [NAME] | close>");
+      throw new Error("usage: drive.ts <snapshot | click ROLE NAME | hover ROLE NAME | press ROLE NAME KEY | fill LABEL VALUE | select LABEL OPTION | screenshot DIR [NAME] | close>");
   }
 } finally {
   // Disconnects without closing the preview.

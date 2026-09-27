@@ -1,4 +1,4 @@
-import type { BatteryCheck } from "./battery";
+import type { BatteryCheck, HealthSample } from "./battery";
 import type { Settings } from "./settings";
 
 export type ReleaseNotice = {
@@ -35,6 +35,8 @@ export type Commands = {
  * latest value of each, which is null until there is one. */
 export type Events = {
   batteryCheck: BatteryCheck;
+  /** Oldest first, one sample per day. */
+  healthHistory: HealthSample[];
   updateAvailable: AvailableUpdate | null;
   installProgress: InstallProgress | null;
 };
