@@ -9,17 +9,35 @@ export type BatteryCheck = { checkedAt: number } & (
   | { ok: false; error: string }
 );
 
-/** The last health read on a local calendar day, written `YYYY-MM-DD`. */
-export type HealthSample = { day: string; health: number };
+/** A local calendar day written `YYYY-MM-DD`. */
+export type Day = string & { readonly day: unique symbol };
 
-/** A whole number from 0 to 100. Only `batteryHealth` makes one. */
+/** The last health read on a day. */
+export type HealthSample = { day: Day; health: WholePercent };
+
+export const localDay = (time: number) => {
+  const date = new Date(time);
+  return [date.getFullYear(), date.getMonth() + 1, date.getDate()]
+    .map((part) => String(part).padStart(2, "0"))
+    .join("-") as Day;
+};
+
+/** The local midnight that starts `day`, as an epoch in milliseconds. */
+export function dayTime(day: string) {
+  const [year, month, date] = day.split("-").map(Number);
+  return new Date(year!, month! - 1, date).getTime();
+}
+
+/** A whole number from 0 to 100. Only `wholePercent` makes one. */
 export type WholePercent = number & { readonly wholePercent: unique symbol };
+
+export const wholePercent = (value: number) => Math.min(100, Math.max(0, Math.round(value))) as WholePercent;
 
 /** The latest health as a whole percent, or null when there is none to trust. A new battery can hold more
  * than its design capacity, which counts as 100. */
 export function batteryHealth(check: BatteryCheck | null): WholePercent | null {
   const health = check?.ok ? check.reading.health : null;
-  return health === null ? null : (Math.min(100, Math.max(0, Math.round(health))) as WholePercent);
+  return health === null ? null : wholePercent(health);
 }
 
 /** One line for the tray and the window header. */

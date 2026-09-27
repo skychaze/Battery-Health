@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
 import type { KeyboardEvent } from "react";
-import type { HealthSample } from "../shared/battery";
-import { dayTime, PLOT, plotHealth } from "./health-plot";
+import { dayTime } from "../shared/battery";
+import type { Day, HealthSample } from "../shared/battery";
+import { PLOT, plotHealth } from "./health-plot";
 import { usePublishedState } from "./published-state";
 
 export function HealthHistory() {
   const [history] = usePublishedState("healthHistory");
+  // A battery that has never reported its health has nothing to graph.
+  if (!history?.length) return null;
   return (
     <section className="health-history">
       <h2>Health over time</h2>
-      {history && history.length > 1 ? (
+      {history.length > 1 ? (
         <HealthChart samples={history} />
       ) : (
         <p>Tether saves the health once a day. The graph appears after the second day.</p>
@@ -28,6 +31,7 @@ function HealthChart({ samples }: { samples: HealthSample[] }) {
   const last = samples.at(-1)!;
   const shownIndex = active ?? samples.length - 1;
   const shown = plot.points[shownIndex]!;
+  const shownSample = samples[shownIndex]!;
 
   const step = (event: KeyboardEvent) => {
     const move = { ArrowLeft: -1, ArrowRight: 1 }[event.key];
@@ -81,17 +85,18 @@ function HealthChart({ samples }: { samples: HealthSample[] }) {
       <p
         className="chart-tooltip"
         data-hidden={active === null}
-        style={{ left: Math.min(Math.max(shown.x, 44), width - 44), top: shown.y - 12 }}
+        // Sliding the anchor with the day keeps the tooltip inside the chart at either end.
+        style={{ left: shown.x, top: shown.y - 12, translate: `${-shown.along * 100}% -100%` }}
         aria-live="polite"
       >
-        <strong>{samples[shownIndex]!.health}%</strong> {formatDay(samples[shownIndex]!.day)}
+        <strong>{shownSample.health}%</strong> {formatDay(shownSample.day)}
       </p>
     </div>
   );
 }
 
 const dayFormat = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", year: "numeric" });
-const formatDay = (day: string) => dayFormat.format(dayTime(day));
+const formatDay = (day: Day) => dayFormat.format(dayTime(day));
 
 function useWidth(element: Element | null) {
   const [width, setWidth] = useState(0);

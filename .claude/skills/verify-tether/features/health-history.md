@@ -1,6 +1,6 @@
 # Health history
 
-The main process keeps the last health of each local day in `health-history.json` beside the settings, and the window graphs it under the header. A check without a health reading records nothing, and a check from a day before the last sample, such as after the clock moves back, is dropped. With fewer than two days the window says the graph appears after the second day. Hovering the graph, or focusing it and pressing the arrow keys, shows one day's health and date.
+The main process keeps the last health of each local day in `health-history.json` beside the settings, and the window graphs it under the header. A check without a health reading records nothing, and a check from a day before the last sample, such as after the clock moves back, is dropped. Saved samples that are malformed, fractional, or on impossible dates are skipped on load, and the rest are sorted with one per day. With no samples, as on a battery that never reports health, the section is hidden. With one day it says the graph appears after the second day. Hovering the graph, or focusing it and pressing the arrow keys, shows one day's health and date.
 
 ## Sub-features
 
@@ -8,6 +8,7 @@ The main process keeps the last health of each local day in `health-history.json
 - The live update of today's point after a check.
 - The hover and keyboard tooltip.
 - Malformed saved samples are skipped on load.
+- The hidden section on a battery without health.
 
 ## How to get to it (user POV)
 
@@ -24,7 +25,7 @@ node $S/drive.ts press img "Battery health" ArrowLeft && node $S/drive.ts screen
 $S/collect.sh "$EVIDENCE"
 ```
 
-Proof: the chart ends at today's health and moves when the battery's health does; `health-history.json` holds one sample for today and no `bad` day; the tooltip names the hovered or selected day. Launch without `--history` to see the empty state.
+Proof: the chart ends at today's health and moves when the battery's health does; `health-history.json` holds one sample for today and no `bad` day; the tooltip names the hovered or selected day. Launch without `--history` to see the one-day state, and with `--health none` to see the section hidden.
 
 ## Gotchas
 

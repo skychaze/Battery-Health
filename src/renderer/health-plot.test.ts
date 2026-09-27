@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vite-plus/test";
+import type { HealthSample } from "../shared/battery";
 import { plotHealth, PLOT } from "./health-plot";
 
 const width = PLOT.left + PLOT.right + 100;
+const samples = (...days: [string, number][]) => days.map(([day, health]) => ({ day, health }) as HealthSample);
 const ticks = (...health: number[]) =>
   plotHealth(
-    health.map((value, index) => ({ day: `2026-09-0${index + 1}`, health: value })),
+    samples(...health.map((value, index): [string, number] => [`2026-09-0${index + 1}`, value])),
     width,
   ).ticks.map((tick) => tick.health);
 
@@ -18,15 +20,12 @@ describe("health plot", () => {
   });
 
   it("spaces the days by calendar time and picks the nearest", () => {
-    const plot = plotHealth(
-      [
-        { day: "2026-09-01", health: 100 },
-        { day: "2026-09-02", health: 95 },
-        { day: "2026-09-05", health: 90 },
-      ],
-      width,
-    );
-    expect(plot.points.map((point) => point.x - PLOT.left)).toEqual([0, 25, 100]);
+    const plot = plotHealth(samples(["2026-09-01", 100], ["2026-09-02", 95], ["2026-09-05", 90]), width);
+    expect(plot.points.map((point) => [point.along, point.x - PLOT.left])).toEqual([
+      [0, 0],
+      [0.25, 25],
+      [1, 100],
+    ]);
     expect(plot.points[0]!.y).toBe(PLOT.top);
     expect([PLOT.left + 10, PLOT.left + 70].map(plot.nearest)).toEqual([0, 2]);
   });

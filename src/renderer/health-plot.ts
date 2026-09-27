@@ -1,3 +1,4 @@
+import { dayTime } from "../shared/battery";
 import type { HealthSample } from "../shared/battery";
 
 export const PLOT = { height: 132, top: 10, right: 6, bottom: 24, left: 34 };
@@ -11,10 +12,10 @@ export function plotHealth(samples: HealthSample[], width: number) {
   const ticks = healthTicks(Math.min(...samples.map((sample) => sample.health)));
   const low = ticks[0]!;
   const y = (health: number) => PLOT.top + ((100 - health) / (100 - low)) * (PLOT.height - PLOT.top - PLOT.bottom);
-  const points = samples.map((sample, index) => ({
-    x: PLOT.left + ((times[index]! - first) / span) * (width - PLOT.left - PLOT.right),
-    y: y(sample.health),
-  }));
+  const points = samples.map((sample, index) => {
+    const along = (times[index]! - first) / span;
+    return { along, x: PLOT.left + along * (width - PLOT.left - PLOT.right), y: y(sample.health) };
+  });
   return {
     ticks: ticks.map((health) => ({ health, y: y(health) })),
     points,
@@ -32,9 +33,4 @@ function healthTicks(lowest: number) {
   const step = 100 - lowest < 15 ? 5 : 100 - lowest < 40 ? 10 : 25;
   const low = Math.max(0, Math.floor((lowest - 1) / step) * step);
   return Array.from({ length: (100 - low) / step + 1 }, (_, index) => low + index * step);
-}
-
-export function dayTime(day: string) {
-  const [year, month, date] = day.split("-").map(Number);
-  return new Date(year!, month! - 1, date).getTime();
 }

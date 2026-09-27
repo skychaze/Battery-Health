@@ -29,13 +29,27 @@ describe("health history", () => {
     expect(recordHealth(history, check(1, 9, 80))).toBe(history);
   });
 
-  it("drops malformed saved samples", () => {
+  it("drops malformed saved samples and keeps one per day, oldest first", () => {
     const directory = mkdtempSync(join(tmpdir(), "tether-history-"));
     try {
       const file = join(directory, "health-history.json");
       expect(loadHealthHistory(file)).toEqual([]);
-      writeFileSync(file, '[{"day":"2026-09-01","health":91},{"day":"yesterday","health":90},{"day":"2026-09-02"}]');
-      expect(loadHealthHistory(file)).toEqual([{ day: "2026-09-01", health: 91 }]);
+      writeFileSync(
+        file,
+        JSON.stringify([
+          { day: "2026-09-03", health: 89 },
+          { day: "2026-09-01", health: 91 },
+          { day: "2026-09-03", health: 88 },
+          { day: "yesterday", health: 90 },
+          { day: "2026-02-31", health: 90 },
+          { day: "2026-09-02", health: 90.5 },
+          { day: "2026-09-02" },
+        ]),
+      );
+      expect(loadHealthHistory(file)).toEqual([
+        { day: "2026-09-01", health: 91 },
+        { day: "2026-09-03", health: 88 },
+      ]);
     } finally {
       rmSync(directory, { recursive: true, force: true });
     }

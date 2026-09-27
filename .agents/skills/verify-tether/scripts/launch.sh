@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Launch the built preview on an isolated Xvfb display, with a scratch config home, a fake battery, a
 # D-Bus notification recorder, and an audio stream recorder. DevTools opens for drive.ts.
-#   launch.sh [--real-battery] [--settings JSON] [--history JSON]
-#                                                  fresh launch; the flags seed settings.json and health-history.json
+#   launch.sh [--real-battery] [--health N | none] [--settings JSON] [--history JSON]
+#                                                  fresh launch; the flags seed the fake battery's health,
+#                                                  settings.json and health-history.json
 #   launch.sh --restart                            relaunch only the preview, keeping settings and recorders
 set -euo pipefail
 . "$(dirname "$0")/common.sh"
@@ -10,13 +11,15 @@ MODE=fake
 RESTART=0
 SEED=""
 HISTORY=""
+HEALTH=87
 while [ $# -gt 0 ]; do
   case "$1" in
     --real-battery) MODE=real; shift ;;
     --restart) RESTART=1; MODE="$(cat "$RUN_DIR/run.mode" 2>/dev/null || echo fake)"; shift ;;
     --settings) SEED="$2"; shift 2 ;;
     --history) HISTORY="$2"; shift 2 ;;
-    *) echo "usage: launch.sh [--real-battery] [--settings JSON] [--history JSON] | --restart" >&2; exit 2 ;;
+    --health) HEALTH="$2"; shift 2 ;;
+    *) echo "usage: launch.sh [--real-battery] [--health N | none] [--settings JSON] [--history JSON] | --restart" >&2; exit 2 ;;
   esac
 done
 XVFB="${TETHER_XVFB:-$(command -v Xvfb || true)}"
@@ -65,7 +68,7 @@ else
   echo $! >"$RUN_DIR/audio-poller.pid"
   readlink -f "$(command -v bash)" >"$RUN_DIR/audio-poller.exe"
 
-  [ "$MODE" = fake ] && "$SKILL_DIR/scripts/battery.sh" Discharging 50 87 >/dev/null
+  [ "$MODE" = fake ] && "$SKILL_DIR/scripts/battery.sh" Discharging 50 "$HEALTH" >/dev/null
   user_data="$SCRATCH_HOME/config/dev.arnab.tether.preview"
   mkdir -p "$user_data"
   [ -n "$SEED" ] && printf '%s\n' "$SEED" >"$user_data/settings.json"
