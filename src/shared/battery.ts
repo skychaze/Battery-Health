@@ -9,6 +9,9 @@ export type BatteryCheck = { checkedAt: number } & (
   | { ok: false; error: string }
 );
 
+/** The last health read on a local calendar day, written `YYYY-MM-DD`. */
+export type HealthSample = { day: string; health: number };
+
 /** A whole number from 0 to 100. Only `batteryHealth` makes one. */
 export type WholePercent = number & { readonly wholePercent: unique symbol };
 

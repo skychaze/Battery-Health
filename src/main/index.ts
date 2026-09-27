@@ -20,11 +20,13 @@ import type { BatteryCheck, WholePercent } from "../shared/battery";
 import { CURRENT } from "../shared/ipc";
 import type { AvailableUpdate, Commands, Events, Reply } from "../shared/ipc";
 import { readBattery } from "./battery";
+import { loadHealthHistory, recordHealth } from "./health-history";
 import { identities } from "./identity";
+import { writeJsonFile } from "./json-file";
 import { Monitor } from "./monitor";
 import { alertNotification } from "./notification";
 import { launchedHidden, openAtLogin, setOpenAtLogin } from "./open-at-login";
-import { changeSettings, loadSettings, saveSettings } from "./settings";
+import { changeSettings, loadSettings } from "./settings";
 import { SoundPlayer } from "./sound";
 import { percentIcon, TRAY_ICON_SIZE } from "./tray-icon";
 import { trayItems } from "./tray-menu";
@@ -78,8 +80,10 @@ function start() {
   if (process.platform === "win32") app.setAppUserModelId(identity.appId);
 
   const settingsPath = join(app.getPath("userData"), "settings.json");
+  const historyPath = join(app.getPath("userData"), "health-history.json");
   const sound = new SoundPlayer();
   let lastCheck: BatteryCheck | null = null;
+  let healthHistory = loadHealthHistory(historyPath);
   const updater = new Updater(
     manifestUrl,
     (update) => {
@@ -102,11 +106,21 @@ function start() {
       lastCheck = check;
       renderTray();
       publish("batteryCheck", check);
+      const history = recordHealth(healthHistory, check);
+      if (history === healthHistory) return;
+      healthHistory = history;
+      publish("healthHistory", history);
+      try {
+        writeJsonFile(historyPath, history);
+      } catch (error) {
+        console.error("Failed to save the health history:", error);
+      }
     },
   });
 
   const current: { [E in keyof Events]: () => Events[E] | null } = {
     batteryCheck: () => lastCheck,
+    healthHistory: () => healthHistory,
     updateAvailable: () => updater.available(),
     installProgress: () => updater.installProgress(),
   };
@@ -157,7 +171,7 @@ function handleCommands(monitor: Monitor, settingsPath: string, updater: Updater
   handle("updateSettings", (change) => {
     const next = changeSettings(monitor.settings, change);
     try {
-      saveSettings(settingsPath, next);
+      writeJsonFile(settingsPath, next);
     } catch (error) {
       throw new Error(`Could not save settings: ${message(error)}`);
     }

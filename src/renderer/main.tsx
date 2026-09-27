@@ -3,6 +3,7 @@ import "@fontsource/newsreader/latin-400.css";
 import "@fontsource/newsreader/latin-500.css";
 import { createRoot } from "react-dom/client";
 import { batteryHealth, batteryLabel, healthLabel } from "../shared/battery";
+import { HealthHistory } from "./health-history";
 import { usePublishedState } from "./published-state";
 import { AlertSettings, OpenAtLoginRow, VersionRow } from "./settings-rows";
 import "./styles.css";
@@ -27,6 +28,8 @@ function App() {
           <p className="status">{health === null ? healthLabel(check) : "Health"}</p>
         </div>
       </header>
+
+      <HealthHistory />
 
       <div className="settings-list">
         <AlertSettings />

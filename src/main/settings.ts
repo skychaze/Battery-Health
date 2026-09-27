@@ -1,7 +1,6 @@
-import { closeSync, fsyncSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, writeSync } from "node:fs";
-import { dirname } from "node:path";
 import { defaultSettings, numberRanges, settingRules } from "../shared/settings";
 import type { SettingKey, Settings } from "../shared/settings";
+import { readJsonFile } from "./json-file";
 
 const ranges: Partial<Record<SettingKey, { min: number; max: number }>> = numberRanges;
 
@@ -16,16 +15,9 @@ function assign<K extends SettingKey>(settings: Settings, key: K, value: unknown
 /** Each saved field that is missing or no longer valid falls back to its default on its own, so one bad
  * value never resets the rest. */
 export function loadSettings(path: string): Settings {
-  let saved: Record<string, unknown> = {};
-  try {
-    const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
-    if (typeof parsed === "object" && parsed !== null) saved = { ...parsed };
-  } catch (error) {
-    if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) {
-      console.error(`Failed to read settings at ${path}:`, error);
-    }
-  }
+  const saved = readJsonFile(path);
   const settings = { ...defaultSettings };
+  if (typeof saved !== "object" || saved === null) return settings;
   for (const [key, value] of Object.entries(saved)) {
     if (isSettingKey(key) && !assign(settings, key, value)) console.error(`Ignoring the saved ${key} setting.`);
   }
@@ -44,24 +36,4 @@ export function changeSettings(current: Settings, change: unknown): Settings {
     throw new Error(range ? `${key} must be a whole number from ${range.min} to ${range.max}.` : `Invalid ${key}.`);
   }
   return next;
-}
-
-/** Writes through a synced temporary file and a rename, so a failed save leaves the previous file whole. */
-export function saveSettings(path: string, settings: Settings) {
-  const directory = dirname(path);
-  const temporary = `${path}.${process.pid}.tmp`;
-  mkdirSync(directory, { recursive: true });
-  try {
-    const file = openSync(temporary, "w", 0o600);
-    try {
-      writeSync(file, JSON.stringify(settings, null, 2));
-      fsyncSync(file);
-    } finally {
-      closeSync(file);
-    }
-    renameSync(temporary, path);
-  } catch (error) {
-    rmSync(temporary, { force: true });
-    throw error;
-  }
 }

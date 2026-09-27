@@ -109,6 +109,74 @@ h1 {
   color: var(--text-muted);
 }
 
+.health-history {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.health-history h2 {
+  margin: 0 0 10px;
+  font-size: 0.88rem;
+  font-weight: 650;
+}
+.health-history > p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+.health-chart {
+  position: relative;
+}
+.health-chart svg {
+  display: block;
+  width: 100%;
+  overflow: visible;
+  touch-action: none;
+}
+.health-chart svg:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.health-chart text {
+  fill: var(--text-faint);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+}
+.chart-grid line {
+  stroke: var(--hairline);
+}
+.chart-line {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.chart-crosshair {
+  stroke: var(--hairline-soft);
+}
+.chart-dot {
+  fill: var(--ink);
+  stroke: var(--canvas);
+  stroke-width: 2;
+}
+.chart-tooltip {
+  position: absolute;
+  margin: 0;
+  padding: 4px 7px;
+  border: 1px solid var(--border);
+  background: var(--canvas);
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  white-space: nowrap;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+}
+.chart-tooltip strong {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
 [data-hidden="true"] {
   visibility: hidden;
 }

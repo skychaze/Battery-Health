@@ -3,7 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 import { defaultSettings } from "../shared/settings";
-import { changeSettings, loadSettings, saveSettings } from "./settings";
+import { writeJsonFile } from "./json-file";
+import { changeSettings, loadSettings } from "./settings";
 
 let directory: string;
 afterEach(() => rmSync(directory, { recursive: true, force: true }));
@@ -16,7 +17,7 @@ describe("settings file", () => {
   it("starts from the defaults and survives a reload", () => {
     const file = join(path(), "..", "nested", "settings.json");
     expect(loadSettings(file)).toEqual(defaultSettings);
-    saveSettings(file, { ...defaultSettings, above: 90, soundPath: "/tmp/alert.wav" });
+    writeJsonFile(file, { ...defaultSettings, above: 90, soundPath: "/tmp/alert.wav" });
     expect(loadSettings(file)).toEqual({ ...defaultSettings, above: 90, soundPath: "/tmp/alert.wav" });
   });
 
