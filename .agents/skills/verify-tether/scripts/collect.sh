@@ -9,8 +9,10 @@ mkdir -p "$out"
 for file in notifications.raw audio-sinks.raw battery-timeline.log preview.log; do
   [ -f "$RUN_DIR/$file" ] && cp "$RUN_DIR/$file" "$out/"
 done
-[ -f "$SCRATCH_HOME/config/dev.arnab.tether.preview/settings.json" ] &&
-  cp "$SCRATCH_HOME/config/dev.arnab.tether.preview/settings.json" "$out/settings.json"
+for file in settings.json health-history.json; do
+  [ -f "$SCRATCH_HOME/config/dev.arnab.tether.preview/$file" ] &&
+    cp "$SCRATCH_HOME/config/dev.arnab.tether.preview/$file" "$out/$file"
+done
 
 # One line per Notify call addressed to the notification server. The server forwards each call to the shell,
 # and those copies come from the server itself. Only the first four strings of a call are its app name, icon,
