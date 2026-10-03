@@ -38,14 +38,30 @@ async function readLinuxBattery(root: string): Promise<BatteryReading> {
     );
   for (const name of (await readdir(root)).toSorted()) {
     if ((await read(name, "type")) !== "Battery" || (await read(name, "scope")) === "Device") continue;
-    const health = async (unit: "energy" | "charge") =>
-      percentOf(Number(await read(name, `${unit}_full`)), Number(await read(name, `${unit}_full_design`)));
+    const details = await readLinuxDetails((file) => read(name, file));
     return {
       ...parseLinuxBattery(await read(name, "capacity"), await read(name, "status")),
-      health: (await health("energy")) ?? (await health("charge")),
+      ...details,
     };
   }
   throw new Error("No battery found.");
+}
+
+async function readLinuxDetails(read: (file: string) => Promise<string | null>) {
+  const numeric = async (file: string) => {
+    const text = await read(file);
+    const value = text === null || text === "" ? NaN : Number(text);
+    return Number.isFinite(value) && value >= 0 ? value : null;
+  };
+  const [energyFull, energyDesign, chargeFull, chargeDesign, cycles] = await Promise.all(
+    ["energy_full", "energy_full_design", "charge_full", "charge_full_design", "cycle_count"].map(numeric),
+  );
+  return {
+    health: percentOf(energyFull ?? 0, energyDesign ?? 0) ?? percentOf(chargeFull ?? 0, chargeDesign ?? 0),
+    fullWh: energyFull === null ? null : energyFull / 1_000_000,
+    designWh: energyDesign === null ? null : energyDesign / 1_000_000,
+    cycles,
+  };
 }
 
 export function parseLinuxBattery(capacity: string | null, status: string | null): BatteryCharge {
@@ -94,5 +110,5 @@ export function parseWin32Battery(output: string): BatteryReading {
 
 /** `part` as a percent of `whole`, or null unless both are positive numbers. */
 function percentOf(part: number, whole: number) {
-  return part > 0 && whole > 0 ? (part / whole) * 100 : null;
+  return Number.isFinite(part) && Number.isFinite(whole) && part > 0 && whole > 0 ? (part / whole) * 100 : null;
 }

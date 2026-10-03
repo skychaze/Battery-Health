@@ -1,21 +1,15 @@
 import type { BatteryCheck, BatteryReading } from "../shared/battery";
 import type { Settings } from "../shared/settings";
-import { crossedThreshold, nextAlert, settingsChanged } from "./alerts";
-import type { AlertSession } from "./alerts";
 
 export type MonitorEffects = {
   readBattery: () => Promise<BatteryReading>;
-  alert: (reading: BatteryReading, settings: Settings) => void;
   checked: (check: BatteryCheck) => void;
 };
 
-/** Checks the battery every `intervalSeconds` and alerts while it sits past a threshold. A check judges its
- * reading against the settings current when the reading lands, so a check asked for while one is reading is
- * already covered and does not run. */
 export class Monitor {
-  private session: AlertSession = null;
   private timer: ReturnType<typeof setTimeout> | undefined;
-  private checking = false;
+  private stopped = false;
+  private pending: Promise<BatteryCheck> | null = null;
 
   constructor(
     private current: Settings,
@@ -27,48 +21,47 @@ export class Monitor {
   }
 
   start() {
-    this.check();
+    this.stopped = false;
+    void this.refresh();
+  }
+
+  stop() {
+    this.stopped = true;
+    clearTimeout(this.timer);
+    this.timer = undefined;
   }
 
   update(next: Settings) {
-    const { session, effect } = settingsChanged(this.session, this.current, next);
-    this.session = session;
     this.current = next;
-    if (effect === "evaluate") this.check();
-    else if (effect === "reschedule") this.schedule();
+    if (!this.pending) this.schedule();
   }
 
-  private check() {
+  refresh(): Promise<BatteryCheck> {
+    if (this.pending) return this.pending;
     clearTimeout(this.timer);
-    if (this.checking) return;
-    this.checking = true;
-    void this.effects
-      .readBattery()
+    this.pending = Promise.resolve()
+      .then(() => this.effects.readBattery())
       .then(
-        (reading) => {
-          const { session, alert } = nextAlert(
-            this.session,
-            crossedThreshold(this.current, reading),
-            this.current.notifyAttempts,
-          );
-          this.session = session;
-          this.effects.checked({ ok: true, reading, checkedAt: Date.now() });
-          if (alert) this.effects.alert(reading, this.current);
-        },
-        (error: unknown) => {
-          console.error("Failed to read the battery:", error);
-          const message = error instanceof Error ? error.message : String(error);
-          this.effects.checked({ ok: false, error: message, checkedAt: Date.now() });
-        },
+        (reading): BatteryCheck => ({ ok: true, reading, checkedAt: Date.now() }),
+        (error: unknown): BatteryCheck => ({
+          ok: false,
+          error: error instanceof Error ? error.message : String(error),
+          checkedAt: Date.now(),
+        }),
       )
+      .then((check) => {
+        this.effects.checked(check);
+        return check;
+      })
       .finally(() => {
-        this.checking = false;
-        this.schedule();
+        this.pending = null;
+        if (!this.stopped) this.schedule();
       });
+    return this.pending;
   }
 
   private schedule() {
     clearTimeout(this.timer);
-    this.timer = setTimeout(() => this.check(), this.current.intervalSeconds * 1000);
+    this.timer = setTimeout(() => void this.refresh(), this.current.intervalSeconds * 1000);
   }
 }

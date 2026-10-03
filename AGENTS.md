@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Tether is a battery monitor Electron app written in TypeScript. It runs in the system tray, and its window is a settings page whose changes apply to the running monitor at once. There is no CLI. The main process is in `src/main/`, the preload bridges in `src/preload/`, the React page in `src/renderer/`, and the types and helpers both sides use in `src/shared/`. The IPC contract lives in `src/shared/ipc.ts`.
+Tether Health is a battery health Electron app written in TypeScript. It runs in the system tray, checks health hourly and after resume, and shows decimal health, capacities, cycle count, and daily history. There is no CLI. The main process is in `src/main/`, the preload bridges in `src/preload/`, the React page in `src/renderer/`, and the types and helpers both sides use in `src/shared/`. The IPC contract lives in `src/shared/ipc.ts`.
 
 ## Toolchain
 
@@ -16,8 +16,9 @@ A pre-commit hook at `.vite-hooks/pre-commit` runs `vp staged`. `vp config` inst
 
 ## Conventions
 
-- Keep alert decisions in `src/main/alerts.ts` as pure functions, and test them apart from the battery, notifications, and sound. Focus tests on threshold boundaries, charging state, and attempt limits.
-- Notification urgency is Linux-only. Keep platform checks next to the code they guard.
+- Preserve raw health values in readings and history; round only when displaying them.
+- Keep monitoring independent of the window lifecycle. Closing the window leaves monitoring running.
+- Update URLs and the Ed25519 verification key belong to this fork.
 - Prove behavior in the real app with the `verify-tether` skill.
 
 ## Validation

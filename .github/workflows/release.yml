@@ -11,7 +11,7 @@ on:
         type: boolean
         default: false
       tag:
-        description: Tag to publish under (e.g. v3.2.0). Required only when publish is on.
+        description: Tag to publish under (e.g. v3.3.0). Required only when publish is on.
         type: string
         default: ""
 
@@ -24,12 +24,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # deb + rpm
-          - platform: ubuntu-22.04
-          # dmg to install, tar.gz for the updater
-          - platform: macos-latest
-          # exe (NSIS installer)
-          - platform: windows-latest
+          - platform: ubuntu-24.04
 
     runs-on: ${{ matrix.platform }}
 
@@ -58,18 +53,7 @@ jobs:
 
       - uses: ./.github/actions/setup-frontend
 
-      # electron-builder assembles the rpm with rpmbuild.
-      - if: startsWith(matrix.platform, 'ubuntu')
-        run: sudo apt-get install -y rpm
-
       - run: vp run package
-
-      - if: startsWith(matrix.platform, 'ubuntu')
-        run: |
-          if rpm -qpl release/tether/*.rpm | grep -q '^/usr/lib/.build-id/'; then
-            echo "::error::RPM contains global build-id links"
-            exit 1
-          fi
 
       # The updater installs only bundles signed with the release key. Without it the bundles still
       # build, but publishing fails for want of signatures.
@@ -82,7 +66,7 @@ jobs:
             exit 0
           fi
           shopt -s nullglob
-          node scripts/sign-update.ts release/tether/*.deb release/tether/*.rpm release/tether/*.tar.gz release/tether/*-setup.exe
+          node scripts/sign-update.ts release/tether-health/*.deb
 
       - uses: actions/upload-artifact@v4
         with:
@@ -90,12 +74,8 @@ jobs:
           retention-days: 7
           if-no-files-found: error
           path: |
-            release/tether/*.deb
-            release/tether/*.rpm
-            release/tether/*.dmg
-            release/tether/*.tar.gz
-            release/tether/*-setup.exe
-            release/tether/*.sig
+            release/tether-health/*.deb
+            release/tether-health/*.sig
 
   publish:
     if: github.event_name == 'push' || inputs.publish
@@ -123,21 +103,14 @@ jobs:
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ inputs.tag || github.ref_name }}
-        # latest.json is what installed apps read from the latest release. Each platform key names
-        # the bundle that app was installed from, so an rpm install never downloads the deb.
+        # latest.json names the signed Linux deb that installed apps download.
         run: |
           shopt -s nullglob
           platforms='{}'
-          for bundle in bundles/*.deb bundles/*.rpm bundles/*.tar.gz bundles/*-setup.exe; do
+          for bundle in bundles/*.deb; do
             name=$(basename "$bundle")
             [ -f "$bundle.sig" ] || { echo "::error::$name is not signed"; exit 1; }
-            case "$name" in
-              *_amd64.deb) key=linux-x86_64-deb ;;
-              *.x86_64.rpm) key=linux-x86_64-rpm ;;
-              *.tar.gz) key=darwin-aarch64 ;;
-              *-setup.exe) key=windows-x86_64 ;;
-              *) echo "::error::no updater platform for $name"; exit 1 ;;
-            esac
+            key=linux-x86_64-deb
             platforms=$(jq --arg key "$key" --arg url "https://github.com/$GH_REPO/releases/download/$TAG/$name" \
               --rawfile signature "$bundle.sig" '.[$key] = {url: $url, signature: ($signature | rtrimstr("\n"))}' <<<"$platforms")
           done
@@ -150,5 +123,5 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "${assets[@]}" --clobber
           else
-            gh release create "$TAG" "${assets[@]}" --draft --title "Tether $TAG" --verify-tag --generate-notes
+            gh release create "$TAG" "${assets[@]}" --draft --title "Tether Health $TAG" --verify-tag --generate-notes
           fi

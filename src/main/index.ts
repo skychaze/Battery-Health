@@ -1,22 +1,11 @@
 import { join } from "node:path";
-import {
-  app,
-  BrowserWindow,
-  dialog,
-  ipcMain,
-  Menu,
-  nativeImage,
-  nativeTheme,
-  Notification,
-  shell,
-  Tray,
-} from "electron";
+import { app, BrowserWindow, ipcMain, Menu, nativeImage, nativeTheme, shell, powerMonitor, Tray } from "electron";
 import appIcon from "../../build/icons/icon.png";
 import previewAppIcon from "../../build/icons/preview/icon.png";
 import previewTrayIcon from "../../build/icons/preview/tray.png";
 import trayIcon from "../../build/icons/tray.png";
-import { batteryHealth, batteryLabel, healthLabel } from "../shared/battery";
-import type { BatteryCheck, WholePercent } from "../shared/battery";
+import { batteryHealth, batteryLabel, healthLabel, formatHealth } from "../shared/battery";
+import type { BatteryCheck, HealthPercent } from "../shared/battery";
 import { CURRENT } from "../shared/ipc";
 import type { AvailableUpdate, Commands, Events, Reply } from "../shared/ipc";
 import { readBattery } from "./battery";
@@ -24,10 +13,8 @@ import { loadHealthHistory, recordHealth } from "./health-history";
 import { identities } from "./identity";
 import { writeJsonFile } from "./json-file";
 import { Monitor } from "./monitor";
-import { alertNotification } from "./notification";
 import { launchedHidden, openAtLogin, setOpenAtLogin } from "./open-at-login";
 import { changeSettings, loadSettings } from "./settings";
-import { SoundPlayer } from "./sound";
 import { percentIcon, TRAY_ICON_SIZE } from "./tray-icon";
 import { trayItems } from "./tray-menu";
 import type { TrayAction } from "./tray-menu";
@@ -41,13 +28,13 @@ const preview = identity === identities.preview;
 app.setPath("userData", join(app.getPath("appData"), identity.appId));
 
 /** The window shell paints before the page does, so it carries the same canvas color the stylesheet
- * uses. Without it a dark desktop gets a cream flash on every open. */
-const canvas = () => (nativeTheme.shouldUseDarkColors ? "#0a0a0a" : "#fbf8f1");
+ * uses. Without it a dark desktop gets a light flash on every open. */
+const canvas = () => (nativeTheme.shouldUseDarkColors ? "#17212b" : "#f3f6f8");
 
 const page = join(import.meta.dirname, "..", "dist");
 const devServer = app.isPackaged ? undefined : process.env.VITE_DEV_SERVER_URL;
 const appImage = () => nativeImage.createFromDataURL(preview ? previewAppIcon : appIcon);
-// Preview builds can read a stand-in battery, so verification can drive every threshold on demand.
+// Preview builds can read a stand-in battery, so verification can drive health readings on demand.
 const powerSupply = (preview && process.env.TETHER_POWER_SUPPLY) || undefined;
 // A dev build has no bundle to replace, and a preview installs under its own name, so a release would land
 // beside it rather than update it. Verification can point a preview at a stand-in manifest instead.
@@ -81,7 +68,6 @@ function start() {
 
   const settingsPath = join(app.getPath("userData"), "settings.json");
   const historyPath = join(app.getPath("userData"), "health-history.json");
-  const sound = new SoundPlayer();
   let lastCheck: BatteryCheck | null = null;
   let healthHistory = loadHealthHistory(historyPath);
   const updater = new Updater(
@@ -95,13 +81,10 @@ function start() {
   const renderTray = createTray(
     () => lastCheck,
     () => updater.available(),
+    () => void monitor.refresh(),
   );
   const monitor = new Monitor(loadSettings(settingsPath), {
     readBattery: () => readBattery(powerSupply),
-    alert: (reading, settings) => {
-      new Notification({ ...alertNotification(reading, settings, process.platform), icon: appImage() }).show();
-      if (settings.soundPath !== null) void sound.play(settings.soundPath);
-    },
     checked: (check) => {
       lastCheck = check;
       renderTray();
@@ -130,18 +113,20 @@ function start() {
   // Clicking the dock icon on macOS reopens the window.
   app.on("activate", showWindow);
   if (!launchedHidden()) showWindow();
+  app.on("before-quit", () => monitor.stop());
+  powerMonitor.on("resume", () => void monitor.refresh());
   monitor.start();
   void updater.watch();
 }
 
 /** Returns what redraws the tray from the latest `check` and `update`. */
-function createTray(check: () => BatteryCheck | null, update: () => AvailableUpdate | null) {
+function createTray(check: () => BatteryCheck | null, update: () => AvailableUpdate | null, refresh: () => void) {
   const tray = new Tray(trayImage());
   // macOS opens the menu on a left click; elsewhere the click opens the window and the menu keeps its
   // own button.
   if (process.platform !== "darwin") tray.on("click", showWindow);
-  const actions: Record<TrayAction, () => void> = { show: showWindow, quit: () => app.quit() };
-  let shownHealth: WholePercent | null = null;
+  const actions: Record<TrayAction, () => void> = { show: showWindow, refresh, quit: () => app.quit() };
+  let shownHealth: HealthPercent | null = null;
   const render = () => {
     const latest = check();
     const health = batteryHealth(latest);
@@ -178,15 +163,7 @@ function handleCommands(monitor: Monitor, settingsPath: string, updater: Updater
     monitor.update(next);
     return next;
   });
-  handle("chooseSound", async () => {
-    const options: Electron.OpenDialogOptions = {
-      title: "Choose an alert sound",
-      properties: ["openFile"],
-      filters: [{ name: "Audio", extensions: ["mp3", "wav", "ogg", "oga", "flac", "m4a", "aac", "opus", "webm"] }],
-    };
-    const result = mainWindow ? await dialog.showOpenDialog(mainWindow, options) : await dialog.showOpenDialog(options);
-    return result.filePaths[0] ?? null;
-  });
+  handle("refreshBattery", () => monitor.refresh());
   handle("openAtLogin", () => openAtLogin(identity));
   handle("setOpenAtLogin", (enabled) => setOpenAtLogin(identity, enabled === true));
   handle("checkForUpdate", () =>
@@ -200,7 +177,7 @@ function handleCommands(monitor: Monitor, settingsPath: string, updater: Updater
     }),
   );
   handle("releaseNotes", () => updater.releaseNotes());
-  handle("openLatestRelease", () => shell.openExternal("https://github.com/zytact/tether/releases/latest"));
+  handle("openLatestRelease", () => shell.openExternal("https://github.com/skychaze/tether/releases/latest"));
 }
 
 /** Closing the window destroys it, so the tray and a normal launch build it afresh. A closed window
@@ -215,8 +192,8 @@ function showWindow() {
   const window = new BrowserWindow({
     title: identity.productName,
     icon: appImage(),
-    width: 460,
-    height: 720,
+    width: 560,
+    height: 900,
     minWidth: 360,
     minHeight: 480,
     backgroundColor: canvas(),
@@ -249,13 +226,13 @@ function trayImage() {
 
 /** macOS writes the health beside its template mark; elsewhere the health replaces the mark, drawn in
  * the mark's color. Without a health reading the tray shows the plain mark. */
-function showHealth(tray: Tray, health: WholePercent | null) {
+function showHealth(tray: Tray, health: HealthPercent | null) {
   if (process.platform === "darwin")
-    tray.setTitle(health === null ? "" : `${health}%`, { fontType: "monospacedDigit" });
+    tray.setTitle(health === null ? "" : `${formatHealth(health)}%`, { fontType: "monospacedDigit" });
   else tray.setImage(health === null ? trayImage() : healthImage(health));
 }
 
-function healthImage(health: WholePercent) {
+function healthImage(health: HealthPercent) {
   const bitmap = percentIcon(health, trayImage().toBitmap());
   return nativeImage.createFromBitmap(bitmap, { width: TRAY_ICON_SIZE, height: TRAY_ICON_SIZE });
 }

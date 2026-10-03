@@ -1,74 +1,47 @@
-# Tether
+# Tether Health
 
-An Electron tray app for Linux, macOS, and Windows. It watches the battery and sends a desktop notification, with an optional sound, when a charging battery reaches the high level or a discharging one drops to the low level.
+A battery health tray app for Linux, focused on Pop!_OS and Ubuntu on x86-64. Forked from [Tether](https://github.com/zytact/tether).
 
-Tether replaces Rustcharge, the Rust CLI that used to live in this repository. It has no flags and no `set` command. Every setting lives in its window and applies to the running monitor as soon as it changes.
+The tray and window show health to two decimal places. Health is full-charge capacity divided by design capacity, multiplied by 100. The extra decimals preserve the battery controller's estimate; they do not guarantee that degree of physical accuracy. Values above 100% remain visible when a battery holds more than its design capacity.
 
-## Run
+The window shows full-charge capacity, design capacity, charge cycles, the last check, and the next check. A daily history keeps the last reading of each day without rounding. The graph appears after two days. No charge-level alerts or custom sounds.
 
-```sh
-vp install
-vp run dev
-```
+## Monitoring
 
-`vp` is the [Vite+](https://viteplus.dev) CLI. Install it with `curl -fsSL https://vite.plus | bash`. It manages Node, pnpm, and the toolchain. `vp run dev` serves the page with hot reload and rebuilds the main process as it changes; main process changes take effect on the next launch.
+Health checks run at launch, every hour, after waking from sleep, and when you choose Refresh health in the window or tray. A refresh starts a new hourly interval. Closing the window leaves the tray running. Open at login starts the app in the tray.
 
-Launching Tether opens the settings window. The window and the tray show the battery health, which is the full charge as a percent of the design capacity. On Linux and Windows the tray icon becomes that number, and on macOS it sits beside the icon. Closing the window leaves the monitor running in the tray, whose menu shows the latest battery reading, reopens the window, and quits. Only one instance runs at a time, so launching it again reopens the window of the one already running. **Open at login** starts it in the tray without the window.
+Linux reads the first system battery in `/sys/class/power_supply`, skipping batteries with a Device scope. It uses `energy_full` and `energy_full_design`, with a fallback to `charge_full` and `charge_full_design`. Capacities in Wh are available only when energy readings exist. Missing health, capacities, or cycle count appear as unavailable.
 
-## Settings
+Settings and history stay local in `~/.config/dev.skychaze.tether-health/`. The app has its own identity, so it can run beside upstream Tether.
 
-| Setting             | Default     | What it does                                                                         |
-| ------------------- | ----------- | ------------------------------------------------------------------------------------ |
-| High battery        | 85%, on     | Alert while charging at or above the level.                                          |
-| Low battery         | 20%, on     | Alert while discharging at or below the level.                                       |
-| Alerts per crossing | 15          | Alerts stop after this many until the battery leaves the level and crosses it again. |
-| Check every         | 120 seconds | How often the battery is read, from 1 second to a day.                               |
-| Sound               | none        | A file played with each alert. Without one, the notification keeps the system sound. |
-| Urgency             | Normal      | Linux only. Low, Normal, or Critical.                                                |
-| Open at login       | off         | Starts the app in the tray at sign-in.                                               |
+## Build
 
-Settings are saved to `settings.json` in the app's config directory, which is `~/.config/dev.arnab.tether/` on Linux. A saved value that is no longer valid falls back to its default without resetting the others.
-
-Changing a threshold or switching it on or off ends that threshold's alerts and reads the battery at once, so a new level can alert straight away. Changing the interval starts a new one from that moment. Sound, urgency, and alert count changes keep the current alerts' count and the next scheduled check.
-
-A sound plays in a hidden window that exists only while it plays. When an alert arrives while the previous sound is still playing, its sound is skipped.
-
-## Battery readings
-
-- Linux reads the first `/sys/class/power_supply` entry of type `Battery`, skipping peripheral batteries with a `Device` scope. Only the `Charging` status counts as charging, so a full battery on AC is not charging.
-- macOS reads `pmset -g batt`.
-- Windows reads the battery driver's `BatteryStatus` and `BatteryFullChargedCapacity` through PowerShell, and counts only its charging flag as charging, so a full battery on AC is not charging.
-
-## Build and check
+Install [Vite+](https://viteplus.dev), then run:
 
 ```sh
+vp install --frozen-lockfile
 vp check
 vp test
+vp run fallow
 vp build
 vp pack
 vp run package
 ```
 
-`vp check` verifies formatting with Oxfmt, lints with Oxlint, and type checks. Add `--fix` to rewrite instead of report. A pre-commit hook runs `vp staged`, which applies `vp check --fix` to the staged files. `vp run fallow` audits the change against `origin/main` for dead code, duplication, and complexity.
+The Linux build creates `release/tether-health/tether-health_3.3.0_amd64.deb`. Build on Linux. To run in development, use `vp run dev`.
 
-`vp run package` builds the page and the main process, then `scripts/package.ts` runs electron-builder into `release/tether/`: a deb and an rpm on Linux, a dmg on macOS, and an NSIS installer on Windows. Build each platform's bundles on that platform. Add `-- --dir` to stop at the unpacked app. Assembling the Linux packages needs `rpmbuild`, and electron-builder's bundled fpm needs `libcrypt.so.1`, which Fedora ships as `libxcrypt-compat`.
+## Updates
 
-## Preview builds
+Release builds check this fork's GitHub releases at launch and every 6 hours. Check for updates also runs on demand. Updates show release notes and installation progress, verify the download's Ed25519 signature, and relaunch after installation. Installing a deb asks for an administrator password through polkit.
 
-A preview is a separate app. `src/main/identity.ts` gives it its own product name, app id, and executable name, so it installs beside a release build and keeps its own settings directory, autostart entry, and single-instance lock. Its icons are blue rather than orange.
+The fork uses its own signing key. The private key stays outside the repository, and the `UPDATE_SIGNING_KEY` GitHub Actions secret signs releases. Keep a secure backup of that key. Changing it prevents existing builds from accepting newly signed updates.
 
-```sh
-vp build && vp pack && node scripts/package.ts --preview --dir
-```
+Push a version tag matching `package.json` to build the Linux deb and prepare a draft release with its signed update manifest. Publish the draft to make it available to installed apps. Development and preview builds do not check for updates unless a preview is explicitly pointed at a test manifest.
 
-Only a preview build reads `TETHER_POWER_SUPPLY`, which replaces the Linux sysfs directory with a stand-in battery for verification.
+## Verification
 
-## Releases
+The existing `.agents/skills/verify-tether` harness drives a separately identified Electron preview, its actual tray menu, and fake or real battery readings. Its upstream alert instructions describe features removed in this fork. Use the health-history, tray-and-window, and updates helpers for this app. Preview settings stay separate from the release build.
 
-Push a `v<version>` tag matching `version` in `package.json`, and `.github/workflows/release.yml` builds the bundles on Linux, macOS, and Windows and attaches them to a draft GitHub release. Running the workflow by hand without **publish** is a dry run that keeps the bundles as workflow artifacts.
+## License
 
-Release builds check the latest published GitHub release at launch and every 6 hours. Settings can check on demand. A newer version appears in the window and tray menu. The window shows release notes for every intervening release, download and installation progress, and any notices that need acknowledgement. Installing verifies the bundle's Ed25519 signature, installs the matching deb, rpm, macOS tarball, or Windows NSIS installer, and relaunches. Linux package installation asks for an administrator password through polkit. Dev and preview builds do not check for updates.
-
-Direct updates cover the latest 15 published releases. An older version links to the latest release for a fresh install after quitting Tether. The release workflow records the oldest eligible version in `latest.json`. Add urgent notices to `release-notices.json` with a unique `id`, a plain `message`, and inclusive `fromVersion` and `throughVersion` values. Use `platforms` with `linux`, `darwin`, or `win32` for system-specific notices. Matching notices require acknowledgement before installation. The workflow retains them while affected versions remain eligible for direct updates.
-
-macOS builds are ad-hoc signed rather than signed with an Apple Developer ID, so the first launch of a downloaded dmg needs **Open** from the app's context menu, or `xattr -dr com.apple.quarantine /Applications/Tether.app`.
+MIT. The upstream copyright and license remain in [LICENSE](LICENSE).

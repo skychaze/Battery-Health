@@ -47,7 +47,6 @@ export default defineConfig({
       loader: { ".png": "dataurl" },
     },
     preload({ preload: "src/preload/index.ts" }),
-    preload({ sound: "src/preload/sound.ts" }),
   ],
   fmt: {
     ignorePatterns: notOurs,

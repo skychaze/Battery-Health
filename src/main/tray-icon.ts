@@ -1,10 +1,10 @@
-import type { WholePercent } from "../shared/battery";
+import type { HealthPercent } from "../shared/battery";
 
 export const TRAY_ICON_SIZE = 64;
 
-// Blocky glyphs stay legible once the panel shrinks the icon to 16 to 24 pixels, and a narrow 1 lets
-// 100 draw as large as two digits nearly do.
+// Two rows keep the whole number and decimal places legible in a square tray icon.
 const glyphs: Record<string, string[]> = {
+  ".": [".", ".", ".", ".", "#"],
   "0": ["###", "#.#", "#.#", "#.#", "###"],
   "1": ["#", "#", "#", "#", "#"],
   "2": ["###", "..#", "###", "#..", "###"],
@@ -17,28 +17,29 @@ const glyphs: Record<string, string[]> = {
   "9": ["###", "#.#", "###", "..#", "###"],
 };
 const GLYPH_HEIGHT = 5;
-const MAX_SCALE = 9;
+const MAX_SCALE = 5;
 
-/** Draws `percent` as digits on a transparent square, in the first opaque color of `mark`. Both are BGRA
+/** Draws `percent` as two rows of decimal digits on a transparent square, in the first opaque color of `mark`. Both are BGRA
  * bitmaps, as `nativeImage` reads and writes them. */
-export function percentIcon(percent: WholePercent, mark: Buffer): Buffer {
-  const digits = String(percent)
-    .split("")
-    .map((digit) => glyphs[digit]);
-  const width = digits.reduce((sum, glyph) => sum + glyph[0].length, digits.length - 1);
-  const scale = Math.min(MAX_SCALE, Math.floor(TRAY_ICON_SIZE / width));
-  const top = Math.floor((TRAY_ICON_SIZE - GLYPH_HEIGHT * scale) / 2);
-  let left = Math.floor((TRAY_ICON_SIZE - width * scale) / 2);
-
+export function percentIcon(percent: HealthPercent, mark: Buffer): Buffer {
   const bitmap = Buffer.alloc(TRAY_ICON_SIZE * TRAY_ICON_SIZE * 4);
   const color = opaquePixel(mark);
-  for (const glyph of digits) {
-    glyph.forEach((row, y) =>
-      row.split("").forEach((cell, x) => {
-        if (cell === "#") fill(bitmap, left + x * scale, top + y * scale, scale, color);
-      }),
-    );
-    left += (glyph[0].length + 1) * scale;
+  const [whole, decimals] = percent.toFixed(2).split(".");
+  const rows = [whole, `.${decimals}`];
+  for (const [rowIndex, text] of rows.entries()) {
+    const digits = text.split("").map((digit) => glyphs[digit]);
+    const width = digits.reduce((sum, glyph) => sum + glyph[0].length, digits.length - 1);
+    const scale = Math.min(MAX_SCALE, Math.floor(TRAY_ICON_SIZE / width));
+    const top = rowIndex * 32 + Math.floor((32 - GLYPH_HEIGHT * scale) / 2);
+    let left = Math.floor((TRAY_ICON_SIZE - width * scale) / 2);
+    for (const glyph of digits) {
+      glyph.forEach((row, y) =>
+        row.split("").forEach((cell, x) => {
+          if (cell === "#") fill(bitmap, left + x * scale, top + y * scale, scale, color);
+        }),
+      );
+      left += (glyph[0].length + 1) * scale;
+    }
   }
   return bitmap;
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { KeyboardEvent } from "react";
-import { dayTime } from "../shared/battery";
+import { dayTime, formatHealth } from "../shared/battery";
 import type { Day, HealthSample } from "../shared/battery";
 import { PLOT, plotHealth } from "./health-plot";
 import { usePublishedState } from "./published-state";
@@ -8,14 +8,14 @@ import { usePublishedState } from "./published-state";
 export function HealthHistory() {
   const [history] = usePublishedState("healthHistory");
   // A battery that has never reported its health has nothing to graph.
-  if (!history?.length) return null;
+
   return (
     <section className="health-history">
       <h2>Health over time</h2>
-      {history.length > 1 ? (
+      {history && history.length > 1 ? (
         <HealthChart samples={history} />
       ) : (
-        <p>Tether saves the health once a day. The graph appears after the second day.</p>
+        <p>A daily record starts with your first health reading. Come back tomorrow to see the trend.</p>
       )}
     </section>
   );
@@ -47,7 +47,7 @@ function HealthChart({ samples }: { samples: HealthSample[] }) {
         height={PLOT.height}
         role="img"
         tabIndex={0}
-        aria-label={`Battery health went from ${first.health}% on ${formatDay(first.day)} to ${last.health}% on ${formatDay(last.day)}.`}
+        aria-label={`Battery health went from ${formatHealth(first.health)}% on ${formatDay(first.day)} to ${formatHealth(last.health)}% on ${formatDay(last.day)}.`}
         onPointerMove={(event) => setActive(plot.nearest(event.clientX - svg!.getBoundingClientRect().left))}
         onPointerLeave={() => setActive(null)}
         onKeyDown={step}
@@ -89,7 +89,7 @@ function HealthChart({ samples }: { samples: HealthSample[] }) {
         style={{ left: shown.x, top: shown.y - 12, translate: `${-shown.along * 100}% -100%` }}
         aria-live="polite"
       >
-        <strong>{shownSample.health}%</strong> {formatDay(shownSample.day)}
+        <strong>{formatHealth(shownSample.health)}%</strong> {formatDay(shownSample.day)}
       </p>
     </div>
   );

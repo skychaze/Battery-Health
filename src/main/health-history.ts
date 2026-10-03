@@ -1,4 +1,4 @@
-import { batteryHealth, dayTime, localDay, wholePercent } from "../shared/battery";
+import { batteryHealth, dayTime, localDay, healthPercent } from "../shared/battery";
 import type { BatteryCheck, HealthSample } from "../shared/battery";
 import { readJsonFile } from "./json-file";
 
@@ -30,6 +30,6 @@ function isSample(value: unknown): value is HealthSample {
     typeof day === "string" &&
     localDay(dayTime(day)) === day &&
     typeof health === "number" &&
-    wholePercent(health) === health
+    healthPercent(health) !== null
   );
 }

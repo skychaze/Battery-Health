@@ -24,7 +24,7 @@ export function loadSettings(path: string): Settings {
   return settings;
 }
 
-/** The settings with `change` applied. The change comes from the window, so every field is checked and an
+/** The settings with `change` applied. Every field is checked and an
  * unknown or invalid one rejects the whole change. */
 export function changeSettings(current: Settings, change: unknown): Settings {
   if (typeof change !== "object" || change === null) throw new Error("A settings change must be an object.");

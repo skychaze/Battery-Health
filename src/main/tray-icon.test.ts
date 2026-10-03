@@ -32,7 +32,7 @@ describe("tray icon", () => {
   });
 
   it("centers every width of reading inside the icon", () => {
-    for (const value of [0, 7, 42, 100]) {
+    for (const value of [7, 42, 91.68, 100.4]) {
       const { left, top, width, height } = drawn(icon(value));
       expect(width).toBeLessThanOrEqual(TRAY_ICON_SIZE);
       expect(Math.abs(TRAY_ICON_SIZE - width - 2 * left)).toBeLessThanOrEqual(1);

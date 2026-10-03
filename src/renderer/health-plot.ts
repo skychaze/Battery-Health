@@ -11,7 +11,8 @@ export function plotHealth(samples: HealthSample[], width: number) {
   const span = times.at(-1)! - first || 1;
   const ticks = healthTicks(Math.min(...samples.map((sample) => sample.health)));
   const low = ticks[0]!;
-  const y = (health: number) => PLOT.top + ((100 - health) / (100 - low)) * (PLOT.height - PLOT.top - PLOT.bottom);
+  const high = Math.max(100, Math.ceil(Math.max(...samples.map((sample) => sample.health)) / 5) * 5);
+  const y = (health: number) => PLOT.top + ((high - health) / (high - low)) * (PLOT.height - PLOT.top - PLOT.bottom);
   const points = samples.map((sample, index) => {
     const along = (times[index]! - first) / span;
     return { along, x: PLOT.left + along * (width - PLOT.left - PLOT.right), y: y(sample.health) };

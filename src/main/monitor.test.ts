@@ -1,75 +1,67 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import type { BatteryReading } from "../shared/battery";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
+import type { BatteryCheck, BatteryReading } from "../shared/battery";
 import { defaultSettings } from "../shared/settings";
 import { Monitor } from "./monitor";
 
-let battery: BatteryReading;
-let monitor: Monitor;
-let alerts: number;
-
-beforeEach(async () => {
-  vi.useFakeTimers();
-  battery = { percent: 50, charging: false, health: null };
-  alerts = 0;
-  monitor = new Monitor(
-    { ...defaultSettings, intervalSeconds: 60 },
-    { readBattery: async () => battery, alert: () => alerts++, checked: () => {} },
-  );
-  monitor.start();
-  await vi.advanceTimersByTimeAsync(0);
-});
+const reading: BatteryReading = { percent: 100, charging: false, health: 91.68333333333334 };
 afterEach(() => vi.useRealTimers());
 
-describe("monitor", () => {
-  it("alerts on the interval while the battery is past a threshold", async () => {
-    battery = { percent: 10, charging: false, health: null };
-    await vi.advanceTimersByTimeAsync(59_999);
-    expect(alerts).toBe(0);
-    await vi.advanceTimersByTimeAsync(1);
-    expect(alerts).toBe(1);
-  });
-
-  it("checks at once when a threshold changes, then restarts the interval", async () => {
-    await vi.advanceTimersByTimeAsync(30_000);
-    monitor.update({ ...monitor.settings, below: 60 });
+describe("health monitor", () => {
+  it("reads on launch and every hour, and manual refresh restarts the hour", async () => {
+    vi.useFakeTimers();
+    const readBattery = vi.fn(async () => reading);
+    const monitor = new Monitor(defaultSettings, { readBattery, checked: () => {} });
+    monitor.start();
     await vi.advanceTimersByTimeAsync(0);
-    expect(alerts).toBe(1);
-    await vi.advanceTimersByTimeAsync(59_999);
-    expect(alerts).toBe(1);
+    expect(readBattery).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(3_599_999);
+    expect(readBattery).toHaveBeenCalledTimes(1);
     await vi.advanceTimersByTimeAsync(1);
-    expect(alerts).toBe(2);
+    expect(readBattery).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(60_000);
+    await monitor.refresh();
+    expect(readBattery).toHaveBeenCalledTimes(3);
+    await vi.advanceTimersByTimeAsync(3_599_999);
+    expect(readBattery).toHaveBeenCalledTimes(3);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(readBattery).toHaveBeenCalledTimes(4);
+    monitor.stop();
   });
 
-  it("keeps the next check through a sound change and restarts it on an interval change", async () => {
-    battery = { percent: 10, charging: false, health: null };
-    await vi.advanceTimersByTimeAsync(30_000);
-    monitor.update({ ...monitor.settings, soundPath: "/tmp/alert.wav" });
-    await vi.advanceTimersByTimeAsync(30_000);
-    expect(alerts).toBe(1);
-
-    monitor.update({ ...monitor.settings, intervalSeconds: 10 });
-    await vi.advanceTimersByTimeAsync(9_999);
-    expect(alerts).toBe(1);
-    await vi.advanceTimersByTimeAsync(1);
-    expect(alerts).toBe(2);
-  });
-
-  it("sends one alert when a threshold changes while a reading is in flight", async () => {
-    let land = () => {};
-    const readings: BatteryReading[] = [];
-    const slow = new Monitor(
-      { ...defaultSettings, above: 90 },
-      {
-        readBattery: () =>
-          new Promise((resolve) => (land = () => resolve({ percent: 85, charging: true, health: null }))),
-        alert: (reading) => readings.push(reading),
-        checked: () => {},
-      },
+  it("shares an in-flight read and uses changed settings for the next interval", async () => {
+    vi.useFakeTimers();
+    let resolveReading: (reading: BatteryReading) => void = () => {};
+    const readBattery = vi.fn(
+      () =>
+        new Promise<BatteryReading>((resolve) => {
+          resolveReading = resolve;
+        }),
     );
-    slow.start();
-    slow.update({ ...slow.settings, above: 80 });
-    land();
+    const checked = vi.fn();
+    const monitor = new Monitor(defaultSettings, { readBattery, checked });
+    const first = monitor.refresh();
+    expect(monitor.refresh()).toBe(first);
     await vi.advanceTimersByTimeAsync(0);
-    expect(readings).toHaveLength(1);
+    monitor.update({ intervalSeconds: 60 });
+    resolveReading(reading);
+    await first;
+    expect(checked).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(readBattery).toHaveBeenCalledTimes(2);
+    monitor.stop();
+    resolveReading(reading);
+    await vi.advanceTimersByTimeAsync(3_600_000);
+    expect(readBattery).toHaveBeenCalledTimes(2);
+  });
+
+  it("publishes a failed check and retries on the next interval", async () => {
+    vi.useFakeTimers();
+    const checks: BatteryCheck[] = [];
+    const readBattery = vi.fn().mockRejectedValueOnce(new Error("No battery found.")).mockResolvedValue(reading);
+    const monitor = new Monitor(defaultSettings, { readBattery, checked: (check) => checks.push(check) });
+    expect(await monitor.refresh()).toMatchObject({ ok: false, error: "No battery found." });
+    await vi.advanceTimersByTimeAsync(3_600_000);
+    expect(checks[1]).toMatchObject({ ok: true, reading });
+    monitor.stop();
   });
 });

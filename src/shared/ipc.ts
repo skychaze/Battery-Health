@@ -19,8 +19,7 @@ export type Commands = {
   settings: () => Settings;
   /** Validates and saves every field in the change, applies it to the running monitor, and returns the result. */
   updateSettings: (change: Partial<Settings>) => Settings;
-  /** Asks for a sound file and returns its path, or null when the dialog is cancelled. */
-  chooseSound: () => string | null;
+  refreshBattery: () => BatteryCheck;
   openAtLogin: () => boolean;
   setOpenAtLogin: (enabled: boolean) => void;
   /** Checks for a release now, and returns it when one is newer than the running build. */
@@ -55,6 +54,3 @@ export type Bridge = {
   on<E extends keyof Events>(event: E, listener: (payload: Events[E]) => void): () => void;
   current<E extends keyof Events>(event: E): Promise<Events[E] | null>;
 };
-
-/** The channels between the main process and the hidden window that plays alert sounds. */
-export const soundChannels = { play: "sound:play", finished: "sound:finished" } as const;

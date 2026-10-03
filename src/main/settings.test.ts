@@ -17,14 +17,14 @@ describe("settings file", () => {
   it("starts from the defaults and survives a reload", () => {
     const file = join(path(), "..", "nested", "settings.json");
     expect(loadSettings(file)).toEqual(defaultSettings);
-    writeJsonFile(file, { ...defaultSettings, above: 90, soundPath: "/tmp/alert.wav" });
-    expect(loadSettings(file)).toEqual({ ...defaultSettings, above: 90, soundPath: "/tmp/alert.wav" });
+    writeJsonFile(file, { ...defaultSettings, intervalSeconds: 7200 });
+    expect(loadSettings(file)).toEqual({ ...defaultSettings, intervalSeconds: 7200 });
   });
 
   it("falls back per field", () => {
     const file = path();
-    writeFileSync(file, '{"above":101,"below":15,"urgency":"loud","notifyAttempts":0,"unknown":true}');
-    expect(loadSettings(file)).toEqual({ ...defaultSettings, below: 15 });
+    writeFileSync(file, '{"intervalSeconds":0,"unknown":true}');
+    expect(loadSettings(file)).toEqual(defaultSettings);
     writeFileSync(file, "not json");
     expect(loadSettings(file)).toEqual(defaultSettings);
   });
@@ -32,20 +32,16 @@ describe("settings file", () => {
 
 describe("settings changes", () => {
   it("applies every valid field", () => {
-    expect(changeSettings(defaultSettings, { above: 100, belowEnabled: false, soundPath: null })).toEqual({
+    expect(changeSettings(defaultSettings, { intervalSeconds: 7200 })).toEqual({
       ...defaultSettings,
-      above: 100,
-      belowEnabled: false,
+      intervalSeconds: 7200,
     });
   });
 
   it("rejects the whole change for one bad field", () => {
-    expect(() => changeSettings(defaultSettings, { above: 90, below: 101 })).toThrow(
-      "below must be a whole number from 0 to 100.",
-    );
-    expect(() => changeSettings(defaultSettings, { notifyAttempts: 1.5 })).toThrow("notifyAttempts");
+    expect(() => changeSettings(defaultSettings, { intervalSeconds: 1.5 })).toThrow("intervalSeconds");
     expect(() => changeSettings(defaultSettings, { intervalSeconds: 0 })).toThrow("intervalSeconds");
-    expect(() => changeSettings(defaultSettings, { soundPath: "" })).toThrow("Invalid soundPath.");
+    expect(() => changeSettings(defaultSettings, { intervalSeconds: 86401 })).toThrow("intervalSeconds");
     expect(() => changeSettings(defaultSettings, { sec: 5 })).toThrow("Unknown setting sec.");
   });
 });

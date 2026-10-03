@@ -4,7 +4,7 @@ import { parseReleaseNotices } from "../shared/release-notice";
 import { isNewer, validVersion } from "../shared/version";
 
 /** The Ed25519 key, as base64 DER, whose private half `scripts/sign-update.ts` signs releases with. */
-const PUBLIC_KEY = "MCowBQYDK2VwAyEA46vmOVepLdxypU8GlHKd94GwJtvToGniARSBIwwpMFc=";
+const PUBLIC_KEY = "MCowBQYDK2VwAyEAZ8icX973u8TeBRFNjX0DvGy0c9JnE1djmmxiUcWpCrw=";
 
 /** The manifest key for each bundle the release workflow publishes. */
 export type PlatformKey = "linux-x86_64-deb" | "linux-x86_64-rpm" | "darwin-aarch64" | "windows-x86_64";

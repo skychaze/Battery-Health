@@ -9,10 +9,10 @@ import type { AvailableUpdate, InstallProgress, ReleaseNotes } from "../shared/i
 import { nextRetry, parseManifest, parseReleases, pendingUpdate, verifySignature } from "./release";
 import type { PendingUpdate, PlatformKey } from "./release";
 
-export const MANIFEST_URL = "https://github.com/zytact/tether/releases/latest/download/latest.json";
+export const MANIFEST_URL = "https://github.com/skychaze/tether/releases/latest/download/latest.json";
 const CHECK_INTERVAL = 6 * 60 * 60 * 1000;
 const DOWNLOAD_TIMEOUT = 10 * 60 * 1000;
-const RELEASES_URL = "https://api.github.com/repos/zytact/tether/releases?per_page=100";
+const RELEASES_URL = "https://api.github.com/repos/skychaze/tether/releases?per_page=100";
 
 const run = promisify(execFile);
 
