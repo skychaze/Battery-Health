@@ -2,7 +2,7 @@ import "@fontsource/source-sans-3/latin-400.css";
 import "@fontsource/source-sans-3/latin-600.css";
 import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { batteryHealth, formatHealth } from "../shared/battery";
+import { batteryHealth, formatHealth, healthBand, healthBands } from "../shared/battery";
 import type { BatteryCheck, BatteryReading, HealthPercent } from "../shared/battery";
 import { BusyButton } from "./busy";
 import { HealthHistory } from "./health-history";
@@ -67,11 +67,12 @@ function App() {
 }
 
 function BatteryDetails({ reading }: { reading: BatteryReading | null }) {
-  const cycles = reading?.cycles?.toLocaleString() ?? "Unavailable";
+  const { fullWh, designWh, cycles, model } = reading ?? {};
   const details = [
-    ["Full-charge capacity", capacity(reading?.fullWh)],
-    ["Design capacity", capacity(reading?.designWh)],
-    ["Charge cycles", cycles],
+    ["Full-charge capacity", capacity(fullWh)],
+    ["Design capacity", capacity(designWh)],
+    ["Charge cycles", cycles?.toLocaleString() ?? "Unavailable"],
+    ["Battery model", model || "Unavailable"],
   ];
   return (
     <dl className="battery-details">
@@ -94,7 +95,7 @@ function HealthReading({ check, health }: { check: BatteryCheck | null; health: 
         {formatHealth(health)}
         <span>%</span>
       </p>
-      <p className="health-meaning">of original capacity</p>
+      <p className="health-meaning">{healthBand(health).label} · of original capacity</p>
     </>
   );
 }
@@ -109,6 +110,16 @@ function HealthError({ check }: { check: BatteryCheck | null }) {
     );
   if (check.reading.health !== null) return null;
   return <p className="notice">Your battery does not report the capacities needed to calculate health.</p>;
+}
+
+function RefreshError({ error }: { error: string | null }) {
+  return (
+    error && (
+      <p className="notice" role="alert">
+        {error}
+      </p>
+    )
+  );
 }
 
 function CheckSchedule({ checkedAt, interval }: { checkedAt: number | undefined; interval: number }) {
@@ -132,6 +143,30 @@ function CheckSchedule({ checkedAt, interval }: { checkedAt: number | undefined;
   );
 }
 
+function HealthGuide({ designWh }: { designWh: number | null | undefined }) {
+  return (
+    <details className="health-guide">
+      <summary>What the colors mean</summary>
+      <dl>
+        {healthBands.map((band) => (
+          <div className="health-band-row" key={band.id} data-health={band.id}>
+            <dt>{band.label}</dt>
+            <dd>{band.range}</dd>
+          </div>
+        ))}
+      </dl>
+      <p>These are this app's capacity bands. The 90% split is an early-wear guide.</p>
+      <p>
+        Lenovo uses below 80% as a battery replacement threshold in its refurbishment service.
+        {designWh != null &&
+          designWh > 0 &&
+          ` For your ${formatHealth(designWh)} Wh battery, 80% is ${formatHealth(designWh * 0.8)} Wh.`}
+      </p>
+      <p>Lenovo Vantage also considers battery age and cycles. These colors do not reproduce its diagnosis.</p>
+    </details>
+  );
+}
+
 function HealthReport({
   check,
   health,
@@ -146,7 +181,7 @@ function HealthReport({
   error: string | null;
 }) {
   return (
-    <section className="health-report" aria-labelledby="health-heading">
+    <section className="health-report" data-health={healthBand(health).id} aria-labelledby="health-heading">
       <h2 id="health-heading">Battery health</h2>
       <div className="health-reading" aria-live="polite">
         <HealthReading check={check} health={health} />
@@ -158,12 +193,9 @@ function HealthReport({
         Full-charge capacity compared with the battery's design capacity. This is the battery controller's estimate.
       </p>
       <HealthError check={check} />
-      {error && (
-        <p className="notice" role="alert">
-          {error}
-        </p>
-      )}
+      <RefreshError error={error} />
       <BatteryDetails reading={reading} />
+      <HealthGuide designWh={reading?.designWh} />
       <CheckSchedule checkedAt={check?.checkedAt} interval={interval} />
     </section>
   );

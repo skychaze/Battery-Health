@@ -224,8 +224,8 @@ function trayImage() {
   return sized;
 }
 
-/** macOS writes the health beside its template mark; elsewhere the health replaces the mark, drawn in
- * the mark's color. Without a health reading the tray shows the plain mark. */
+/** macOS writes the health beside its template mark; elsewhere a colored health symbol precedes the
+ * decimal reading. Without a health reading the tray shows the plain mark. */
 function showHealth(tray: Tray, health: HealthPercent | null) {
   if (process.platform === "darwin")
     tray.setTitle(health === null ? "" : `${formatHealth(health)}%`, { fontType: "monospacedDigit" });
@@ -233,7 +233,7 @@ function showHealth(tray: Tray, health: HealthPercent | null) {
 }
 
 function healthImage(health: HealthPercent) {
-  const { bitmap, width, height } = percentIcon(health, trayImage().toBitmap());
+  const { bitmap, width, height } = percentIcon(health);
   return nativeImage.createFromBitmap(bitmap, { width, height });
 }
 

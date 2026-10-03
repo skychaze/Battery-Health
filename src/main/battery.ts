@@ -61,6 +61,7 @@ async function readLinuxDetails(read: (file: string) => Promise<string | null>) 
     fullWh: energyFull === null ? null : energyFull / 1_000_000,
     designWh: energyDesign === null ? null : energyDesign / 1_000_000,
     cycles,
+    model: await read("model_name"),
   };
 }
 

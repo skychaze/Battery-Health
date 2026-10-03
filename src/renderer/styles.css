@@ -7,6 +7,9 @@
   --text-faint: #526476;
   --accent: #205b86;
   --focus: #205b86;
+  --health-good: #167143;
+  --health-ok: #856000;
+  --health-bad: #b63240;
   --hairline: #ccd6df;
   --hairline-soft: #ccd6df;
   --border-strong: #8b9eae;
@@ -31,6 +34,9 @@
     --text-faint: #b4c4d2;
     --accent: #86c4ee;
     --focus: #86c4ee;
+    --health-good: #70d69a;
+    --health-ok: #f2c94c;
+    --health-bad: #ff8993;
     --hairline: #405365;
     --hairline-soft: #405365;
     --border-strong: #7d93a6;
@@ -477,4 +483,49 @@ button:disabled {
 h1,
 h2 {
   text-wrap: balance;
+}
+
+[data-health="good"] {
+  --health-color: var(--health-good);
+}
+[data-health="ok"] {
+  --health-color: var(--health-ok);
+}
+[data-health="bad"] {
+  --health-color: var(--health-bad);
+}
+.health-report .level,
+.health-report .health-meaning {
+  color: var(--health-color, var(--ink));
+}
+.capacity-gauge span {
+  background: var(--health-color, var(--accent));
+}
+.health-guide {
+  margin-top: 16px;
+  font-size: 0.875rem;
+}
+.health-guide summary {
+  cursor: pointer;
+  min-height: 28px;
+  font-weight: 600;
+}
+.health-guide dl {
+  margin: 8px 0;
+}
+.health-band-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.health-guide dt {
+  color: var(--health-color);
+  font-weight: 600;
+}
+.health-guide dd {
+  margin: 0;
+}
+.health-guide p {
+  margin-top: 8px;
+  color: var(--text-muted);
 }

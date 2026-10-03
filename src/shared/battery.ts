@@ -6,6 +6,7 @@ export type BatteryReading = BatteryCharge & {
   fullWh?: number | null;
   designWh?: number | null;
   cycles?: number | null;
+  model?: string | null;
 };
 
 /** The latest battery check, as the window and tray show it. `checkedAt` is an epoch in milliseconds. */
@@ -45,6 +46,17 @@ export function batteryHealth(check: BatteryCheck | null): HealthPercent | null 
 }
 
 const healthFormat = new Intl.NumberFormat(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+export const healthBands = [
+  { id: "good", label: "Good", minimum: 90, range: "90% and above", bgra: [113, 204, 46, 255] },
+  { id: "ok", label: "Ok", minimum: 80, range: "80% to below 90%", bgra: [76, 201, 242, 255] },
+  { id: "bad", label: "Bad", minimum: 0, range: "Below 80%", bgra: [84, 84, 235, 255] },
+] as const;
+
+export function healthBand(health: HealthPercent | null) {
+  if (health === null) return { id: "unknown", label: "Unavailable", bgra: [128, 128, 128, 255] } as const;
+  return healthBands.find((band) => health >= band.minimum) ?? healthBands[2];
+}
+
 export const formatHealth = (health: number) => healthFormat.format(health);
 
 /** One line for the tray and the window header. */
@@ -57,6 +69,6 @@ export function batteryLabel(check: BatteryCheck | null): string {
 /** The health line for the tray. */
 export function healthLabel(check: BatteryCheck | null): string {
   const health = batteryHealth(check);
-  if (health !== null) return `${formatHealth(health)}% health`;
+  if (health !== null) return `${formatHealth(health)}% health · ${healthBand(health).label}`;
   return check === null ? "Checking health" : "Health unavailable";
 }

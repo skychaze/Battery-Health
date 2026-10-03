@@ -6,6 +6,12 @@ The tray and window show health to two decimal places. Health is full-charge cap
 
 The window shows full-charge capacity, design capacity, charge cycles, the last check, and the next check. A daily history keeps the last reading of each day without rounding. The graph appears after two days. No charge-level alerts or custom sounds.
 
+## Capacity colors
+
+A small heart-and-battery symbol precedes the horizontal tray reading. Green is Good at 90% and above, yellow is Ok from 80% to below 90%, and red is Bad below 80%. The tooltip, menu, and window also show the status in words. Classification uses the raw reading before rounding.
+
+These are app-defined capacity bands, not Lenovo Vantage diagnoses. The 80% reference comes from Lenovo's refurbishment replacement policy; 90% is this app's early-wear guide. Expand "What the colors mean" for the bands and the 80% capacity in Wh for your battery. See [battery health references](docs/battery-health-reference.md) for official sources and the distinction from charge limits and model lifespan.
+
 ## Monitoring
 
 Health checks run at launch, every hour, after waking from sleep, and when you choose Refresh health in the window or tray. A refresh starts a new hourly interval. Closing the window leaves the tray running. Open at login starts the app in the tray.

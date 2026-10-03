@@ -2,14 +2,8 @@ import { describe, expect, it } from "vite-plus/test";
 import { batteryHealth } from "../shared/battery";
 import { percentIcon } from "./tray-icon";
 
-const orange = [30, 83, 217, 255];
-// A mark with a translucent edge before its first opaque pixel, in BGRA like `nativeImage.toBitmap`.
-const mark = Buffer.from([0, 0, 0, 0, 30, 83, 217, 128, ...orange]);
 const icon = (value: number) =>
-  percentIcon(
-    batteryHealth({ ok: true, reading: { percent: 50, charging: false, health: value }, checkedAt: 0 })!,
-    mark,
-  );
+  percentIcon(batteryHealth({ ok: true, reading: { percent: 50, charging: false, health: value }, checkedAt: 0 })!);
 
 /** The lit pixels' bounding box, and the color of the first one. */
 function drawn({ bitmap, width: iconWidth, height: iconHeight }: ReturnType<typeof percentIcon>) {
@@ -27,8 +21,14 @@ function drawn({ bitmap, width: iconWidth, height: iconHeight }: ReturnType<type
 }
 
 describe("tray icon", () => {
-  it("draws the digits in the mark's opaque color", () => {
-    expect(drawn(icon(42)).color).toEqual(orange);
+  it("colors the symbol and digits by health rather than charge", () => {
+    expect(drawn(icon(91.6)).color).toEqual([113, 204, 46, 255]);
+    expect(drawn(icon(80)).color).toEqual([76, 201, 242, 255]);
+    expect(drawn(icon(79.99)).color).toEqual([84, 84, 235, 255]);
+    const image = icon(91.6);
+    expect(image.bitmap.some((_, at) => at % 4 === 3 && (at / 4) % image.width < 17 && image.bitmap[at] === 255)).toBe(
+      true,
+    );
   });
 
   it("keeps every decimal reading horizontal, centered, and at the same font height", () => {

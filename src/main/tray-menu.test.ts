@@ -10,7 +10,7 @@ describe("tray menu", () => {
       labels(
         trayItems({ ok: true, reading: { percent: 84.6, charging: true, health: 91.2 }, checkedAt: 0 }, null, "Tether"),
       ),
-    ).toEqual(["85% · Charging", "91.20% health"]);
+    ).toEqual(["85% · Charging", "91.20% health · Good"]);
     expect(labels(trayItems({ ok: false, error: "No battery found.", checkedAt: 0 }, null, "Tether"))).toEqual([
       "Battery unavailable",
       "Health unavailable",
