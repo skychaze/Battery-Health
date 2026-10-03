@@ -155,7 +155,7 @@ function HealthGuide({ designWh }: { designWh: number | null | undefined }) {
           </div>
         ))}
       </dl>
-      <p>These are this app's capacity bands. The 90% split is an early-wear guide.</p>
+      <p>These are your chosen capacity bands, not manufacturer health ratings.</p>
       <p>
         Lenovo uses below 80% as a battery replacement threshold in its refurbishment service.
         {designWh != null &&

@@ -8,14 +8,15 @@ Lenovo's [Battery Q&A](https://support.lenovo.com/na/en/solutions/ht509084-batte
 
 Lenovo's [Certified Refurbishment Services](https://www.lenovo.com/gb/en/solutions/sustainability-solutions/climate-action/certified-refurbishment-services/) specifies battery replacement below 80% capacity or above 750 cycles within that refurbishment service. This is a service rule, not a stated LOQ battery lifespan or a universal consumer replacement threshold.
 
-## Suggested app bands
+## Chosen app bands
 
 Use remaining capacity relative to design capacity for the color label:
 
 - **Good (green):** 90% or higher.
-- **OK (yellow):** 80% to below 90%.
-- **Bad (red):** below 80%.
+- **Ok (yellow):** 86% to below 90%.
+- **Worn (orange):** 81% to below 86%.
+- **Bad (red):** below 81%.
 
-The 80% boundary is informed by Lenovo's refurbishment criterion. The 90% boundary is an app-defined early-wear indicator, not an OEM standard. Cycle count can be shown as context, but do not label 750 cycles as the LOQ's rated life. These sources give no model-specific cycle limit for this battery.
+These color boundaries are user-chosen, not OEM standards. Lenovo's 80% refurbishment reference remains separate from the app's 81% red boundary. Cycle count can be shown as context, but do not label 750 cycles as the LOQ's rated life. These sources give no model-specific cycle limit for this battery.
 
 For the reported battery, 54.96 Wh / 60 Wh = **91.60%** capacity health at **422 cycles**, so it falls in the suggested Good band. Keep the raw reading for calculations and round only for display.

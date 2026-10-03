@@ -23,8 +23,9 @@ function drawn({ bitmap, width: iconWidth, height: iconHeight }: ReturnType<type
 describe("tray icon", () => {
   it("colors the symbol and digits by health rather than charge", () => {
     expect(drawn(icon(91.6)).color).toEqual([113, 204, 46, 255]);
-    expect(drawn(icon(80)).color).toEqual([76, 201, 242, 255]);
-    expect(drawn(icon(79.99)).color).toEqual([84, 84, 235, 255]);
+    expect(drawn(icon(86)).color).toEqual([76, 201, 242, 255]);
+    expect(drawn(icon(81)).color).toEqual([48, 144, 245, 255]);
+    expect(drawn(icon(80.99)).color).toEqual([84, 84, 235, 255]);
     const image = icon(91.6);
     expect(image.bitmap.some((_, at) => at % 4 === 3 && (at / 4) % image.width < 17 && image.bitmap[at] === 255)).toBe(
       true,

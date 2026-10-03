@@ -48,13 +48,14 @@ export function batteryHealth(check: BatteryCheck | null): HealthPercent | null 
 const healthFormat = new Intl.NumberFormat(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 export const healthBands = [
   { id: "good", label: "Good", minimum: 90, range: "90% and above", bgra: [113, 204, 46, 255] },
-  { id: "ok", label: "Ok", minimum: 80, range: "80% to below 90%", bgra: [76, 201, 242, 255] },
-  { id: "bad", label: "Bad", minimum: 0, range: "Below 80%", bgra: [84, 84, 235, 255] },
+  { id: "ok", label: "Ok", minimum: 86, range: "86% to below 90%", bgra: [76, 201, 242, 255] },
+  { id: "worn", label: "Worn", minimum: 81, range: "81% to below 86%", bgra: [48, 144, 245, 255] },
+  { id: "bad", label: "Bad", minimum: 0, range: "Below 81%", bgra: [84, 84, 235, 255] },
 ] as const;
 
 export function healthBand(health: HealthPercent | null) {
   if (health === null) return { id: "unknown", label: "Unavailable", bgra: [128, 128, 128, 255] } as const;
-  return healthBands.find((band) => health >= band.minimum) ?? healthBands[2];
+  return healthBands.find((band) => health >= band.minimum) ?? healthBands[3];
 }
 
 export const formatHealth = (health: number) => healthFormat.format(health);

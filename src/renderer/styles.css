@@ -9,6 +9,7 @@
   --focus: #205b86;
   --health-good: #167143;
   --health-ok: #856000;
+  --health-worn: #a34c00;
   --health-bad: #b63240;
   --hairline: #ccd6df;
   --hairline-soft: #ccd6df;
@@ -36,6 +37,7 @@
     --focus: #86c4ee;
     --health-good: #70d69a;
     --health-ok: #f2c94c;
+    --health-worn: #ffae64;
     --health-bad: #ff8993;
     --hairline: #405365;
     --hairline-soft: #405365;
@@ -490,6 +492,9 @@ h2 {
 }
 [data-health="ok"] {
   --health-color: var(--health-ok);
+}
+[data-health="worn"] {
+  --health-color: var(--health-worn);
 }
 [data-health="bad"] {
   --health-color: var(--health-bad);
