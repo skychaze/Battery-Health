@@ -1,6 +1,6 @@
 # Tray and window
 
-The monitor lives in the tray. On Linux and Windows the icon shows the battery health as digits in the mark's color, and falls back to the battery mark when there is no health reading. On macOS the health sits beside the mark as its title. The tooltip reads the product name, the latest reading, and the health. The menu leads with two disabled lines, the latest reading such as `12% · Not charging`, `Battery unavailable`, or `Checking the battery` before the first read, and the health such as `87% health` or `Health unavailable`, then `Open Tether Preview` and `Quit`. Closing the window destroys it and keeps the monitor running. Opening it again from the tray builds a fresh window. A second launch raises the running instance's window instead of starting another.
+The monitor lives in the tray. On Linux and Windows the icon shows the battery health as digits in the mark's color, and falls back to the battery mark when there is no health reading. On macOS the health sits beside the mark as its title. The tooltip reads the product name, the latest reading, and the health. The menu leads with two disabled lines, the latest reading such as `12% · Not charging`, `Battery unavailable`, or `Checking the battery` before the first read, and the health such as `87% health` or `Health unavailable`, then `Open Battery Preview` and `Quit`. Closing the window destroys it and keeps the monitor running. Opening it again from the tray builds a fresh window. A second launch raises the running instance's window instead of starting another.
 
 ## Sub-features
 
@@ -24,7 +24,7 @@ node $S/drive.ts close
 $S/battery.sh Charging 34 100 && sleep 3 && $S/tray.sh layout && $S/tray.sh icon "$EVIDENCE" tray-100
 $S/battery.sh Charging 34 none && sleep 3 && $S/tray.sh icon "$EVIDENCE" tray-no-health
 $S/battery.sh Discharging unknown 64 && sleep 3 && $S/tray.sh icon "$EVIDENCE" tray-unavailable && $S/collect.sh "$EVIDENCE"
-$S/tray.sh click "Open Tether Preview" && node $S/drive.ts snapshot | head -3
+$S/tray.sh click "Open Battery Preview" && node $S/drive.ts snapshot | head -3
 $S/tray.sh click Quit; sleep 2; $S/doctor.sh
 ```
 

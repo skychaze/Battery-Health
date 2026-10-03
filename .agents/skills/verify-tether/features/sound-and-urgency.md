@@ -25,7 +25,7 @@ $S/battery.sh Discharging 10 && sleep 6 && $S/collect.sh "$EVIDENCE"
 node $S/drive.ts click button Clear && node $S/drive.ts snapshot | grep -A1 'heading "Sound"'
 ```
 
-Proof: `notifications.txt` shows `urgency=2`, `audio-streams.txt` lists a `tether-preview` stream inside the alert window, and `preview.log` has no `Failed to play`. After `Clear`, the row reads `The system notification sound.` and `settings.json` holds `"soundPath": null`.
+Proof: `notifications.txt` shows `urgency=2`, `audio-streams.txt` lists a `battery-preview` stream inside the alert window, and `preview.log` has no `Failed to play`. After `Clear`, the row reads `The system notification sound.` and `settings.json` holds `"soundPath": null`.
 
 ## Gotchas
 

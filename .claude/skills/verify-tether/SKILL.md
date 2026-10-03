@@ -1,27 +1,27 @@
 ---
 name: verify-tether
-description: Build and drive the isolated Tether Preview Electron tray app against a fake battery, then capture proof of its notifications, urgency, sound, settings window, persistence, tray menu, and updates. Use when verifying a change to alert thresholds, alert sessions, settings changes, sound playback, open at login, the tray, or the updater.
+description: Build and drive the isolated Battery Preview Electron tray app against a fake battery, then capture proof of its notifications, urgency, sound, settings window, persistence, tray menu, and updates. Use when verifying a change to alert thresholds, alert sessions, settings changes, sound playback, open at login, the tray, or the updater.
 ---
 
-# Verify Tether
+# Verify Battery Health
 
-Tether is an Electron tray app. The main process reads the battery on an interval, decides alerts in `src/main/alerts.ts`, sends notifications, and plays the chosen sound in a hidden window. The window is a settings page. Every change there saves to `settings.json` and applies to the running monitor at once. There is no CLI.
+Battery Health is an Electron tray app. The main process reads the battery on an interval, and the window shows decimal health, capacities, cycle count, and daily history. There is no CLI.
 
 Verification uses the built preview app on Linux. Drive its real window over the Chrome DevTools Protocol, its tray menu over D-Bus, and its battery through a fake sysfs tree. Do not load `dist/index.html` or the dev server in a browser, and do not stub `window.tether`: a plain tab has no preload bridge and no monitor.
 
 ## Isolation
 
-`src/main/identity.ts` gives the preview its own product name `Tether Preview`, app id `dev.arnab.tether.preview`, and executable `tether-preview`, so its settings, autostart entry, and single-instance lock never touch an installed release.
+`src/main/identity.ts` gives the preview its own product name `Battery Preview`, app id `dev.skychaze.battery.preview`, and executable `battery-preview`, so its settings, autostart entry, and single-instance lock never touch an installed release.
 
 `launch.sh` adds three more layers:
 
 - An Xvfb display, so the window never appears on the desktop.
-- `XDG_CONFIG_HOME` under `/tmp/tether-verify/home/config`, so settings and the autostart entry land in scratch space.
-- `TETHER_POWER_SUPPLY` pointing at a fake sysfs tree under `/tmp/tether-verify/power_supply`. Only preview builds read it. The tree also holds a 5% wireless-mouse battery with a `Device` scope, which the app must skip.
+- `XDG_CONFIG_HOME` under `/tmp/battery-verify/home/config`, so settings and the autostart entry land in scratch space.
+- `BATTERY_POWER_SUPPLY` pointing at a fake sysfs tree under `/tmp/battery-verify/power_supply`. Only preview builds read it. The tree also holds a 5% wireless-mouse battery with a `Device` scope, which the app must skip.
 
 Two things are not isolated. The session D-Bus and the audio server are the real ones, so alerts pop up on the user's desktop, the sound is audible, and the preview's tray icon shows in the user's panel while it runs. That is what makes notifications, sound, and the tray observable. Keep runs short.
 
-Only one harness preview runs at a time. `launch.sh` refuses a second launch until `cleanup.sh` runs. Never kill Tether processes by name: the user may run the release app.
+Only one harness preview runs at a time. `launch.sh` refuses a second launch until `cleanup.sh` runs. Never kill Battery Preview processes by name: the user may run the release app.
 
 ## Launch
 
@@ -29,7 +29,7 @@ Run from the repository root. Needs `vp`, Xvfb, `xprop`, `dbus-monitor`, `pactl`
 
 ```sh
 S=.agents/skills/verify-tether/scripts
-EVIDENCE=verification-evidence/tether-$(date -u +%Y%m%dT%H%M%SZ)-<name>
+EVIDENCE=verification-evidence/battery-health-$(date -u +%Y%m%dT%H%M%SZ)-<name>
 mkdir -p "$EVIDENCE"
 ffmpeg -y -loglevel error -f lavfi -i "sine=frequency=880:duration=0.4" "$EVIDENCE/beep.wav"
 $S/build-preview.sh 2>&1 | tail -1
@@ -37,7 +37,7 @@ $S/launch.sh --settings "{\"intervalSeconds\":2,\"notifyAttempts\":3,\"soundPath
 $S/doctor.sh
 ```
 
-Ready means `launch.sh` prints `Ready: Tether Preview` and `doctor.sh` ends with `DOCTOR: worth driving`. The fake battery starts at `Discharging 50%` with 87% health, which crosses no default threshold.
+Ready means `launch.sh` prints `Ready: Battery Preview` and `doctor.sh` ends with `DOCTOR: worth driving`. The fake battery starts at `Discharging 50%` with 87% health, which crosses no default threshold.
 
 - `--settings JSON` seeds `settings.json` before the first launch. Use it for a short interval and a sound path, since the file chooser is a native dialog the harness cannot drive. Fields left out take their defaults.
 - `--health N | none` sets the fake battery's starting health instead of 87%.
@@ -87,7 +87,7 @@ Read and click the tray menu, and save the tray icon with its tooltip:
 
 ```sh
 $S/tray.sh layout
-$S/tray.sh click "Open Tether Preview"
+$S/tray.sh click "Open Battery Preview"
 $S/tray.sh click Quit
 $S/tray.sh icon "$EVIDENCE" tray-12
 ```
@@ -107,7 +107,7 @@ Run it after each step worth proving; it reflects everything since launch. It wr
 | `summary.txt` | notification count by payload, audio streams, sound and battery errors |
 | `notifications.txt` | one line per notification: app, summary, body, urgency byte (0 low, 1 normal, 2 critical) |
 | `notifications.raw` | the `dbus-monitor` trace behind it |
-| `audio-streams.txt` | `tether-preview` sink inputs, with first and last time seen |
+| `audio-streams.txt` | `battery-preview` sink inputs, with first and last time seen |
 | `battery-timeline.log` | every launch and battery change, with times |
 | `preview.log` | the app's own errors, such as `Failed to play` or `Skipped the alert sound` |
 | `settings.json` | what the app saved |
@@ -130,7 +130,7 @@ $S/cleanup.sh
 ls "$EVIDENCE"
 ```
 
-It stops only the preview, Xvfb, and the two recorders that `launch.sh` recorded by PID and executable, then removes `/tmp/tether-verify`. Evidence under `verification-evidence/` (gitignored) survives. Run cleanup after every failed attempt too.
+It stops only the preview, Xvfb, and the two recorders that `launch.sh` recorded by PID and executable, then removes `/tmp/battery-verify`. Evidence under `verification-evidence/` (gitignored) survives. Run cleanup after every failed attempt too.
 
 ## Helpers
 

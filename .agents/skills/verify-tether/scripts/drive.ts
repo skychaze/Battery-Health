@@ -15,7 +15,7 @@ import { join } from "node:path";
 const { chromium } = createRequire(join(import.meta.dirname, "../../../../package.json"))("playwright-core");
 
 const [command, ...args] = process.argv.slice(2);
-const port = readFileSync("/tmp/tether-verify/run.cdp", "utf8").trim();
+const port = readFileSync("/tmp/battery-verify/run.cdp", "utf8").trim();
 const browser = await chromium.connectOverCDP(`http://127.0.0.1:${port}`);
 try {
   // The hidden sound window has no page title; the settings window is titled after the app.

@@ -1,9 +1,9 @@
 # Shared paths for the verify-tether helpers. Sourced, not run.
 SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO="$(cd "$SKILL_DIR/../../.." && pwd)"
-BIN="$REPO/release/tether-preview/linux-unpacked/tether-preview"
+BIN="$REPO/release/battery-preview/linux-unpacked/battery-preview"
 # Harness state: PIDs, the fake battery, and the scratch home. Cleanup removes it.
-RUN_DIR="/tmp/tether-verify"
+RUN_DIR="/tmp/battery-verify"
 POWER_SUPPLY="$RUN_DIR/power_supply"
 SCRATCH_HOME="$RUN_DIR/home"
 # Proof artifacts. Cleanup never touches them.

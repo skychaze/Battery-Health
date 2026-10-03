@@ -9,9 +9,9 @@ export const identities = {
     icons: "build/icons",
   },
   preview: {
-    productName: "Tether Preview",
-    appId: "dev.arnab.tether.preview",
-    executableName: "tether-preview",
+    productName: "Battery Preview",
+    appId: "dev.skychaze.battery.preview",
+    executableName: "battery-preview",
     icons: "build/icons/preview",
   },
 } as const;

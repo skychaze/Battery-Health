@@ -11,7 +11,7 @@ While the battery is not charging and sits at or below the low level, each check
 
 ## How to get to it (user POV)
 
-Open Tether from the tray or a launch. The `Low battery` row holds the level and the switch. Alerts arrive on their own when the battery drains to the level.
+Open Battery Preview from the tray or a launch. The `Low battery` row holds the level and the switch. Alerts arrive on their own when the battery drains to the level.
 
 ## Driving it with the harness
 

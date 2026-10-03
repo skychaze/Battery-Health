@@ -35,13 +35,13 @@ const page = join(import.meta.dirname, "..", "dist");
 const devServer = app.isPackaged ? undefined : process.env.VITE_DEV_SERVER_URL;
 const appImage = () => nativeImage.createFromDataURL(preview ? previewAppIcon : appIcon);
 // Preview builds can read a stand-in battery, so verification can drive health readings on demand.
-const powerSupply = (preview && process.env.TETHER_POWER_SUPPLY) || undefined;
+const powerSupply = (preview && process.env.BATTERY_POWER_SUPPLY) || undefined;
 // A dev build has no bundle to replace, and a preview installs under its own name, so a release would land
 // beside it rather than update it. Verification can point a preview at a stand-in manifest instead.
 const manifestUrl = !app.isPackaged
   ? undefined
   : preview
-    ? process.env.TETHER_UPDATE_MANIFEST || undefined
+    ? process.env.BATTERY_UPDATE_MANIFEST || undefined
     : MANIFEST_URL;
 
 let mainWindow: BrowserWindow | null = null;

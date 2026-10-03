@@ -6,8 +6,8 @@ fail=0
 ok() { echo "OK $*"; }
 bad() { echo "FAIL $*"; fail=1; }
 
-grep -q 'productName: "Tether Preview"' "$REPO/src/main/identity.ts" &&
-  grep -q 'appId: "dev.arnab.tether.preview"' "$REPO/src/main/identity.ts" &&
+grep -q 'productName: "Battery Preview"' "$REPO/src/main/identity.ts" &&
+  grep -q 'appId: "dev.skychaze.battery.preview"' "$REPO/src/main/identity.ts" &&
   ok "preview identity is separate from the release" || bad "preview identity config is incomplete"
 
 if [ -x "$BIN" ] && [ -z "$(find "$REPO/src" -newer "$BIN" -print -quit)" ]; then

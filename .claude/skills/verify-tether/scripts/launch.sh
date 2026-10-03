@@ -22,9 +22,9 @@ while [ $# -gt 0 ]; do
     *) echo "usage: launch.sh [--real-battery] [--health N | none] [--settings JSON] [--history JSON] | --restart" >&2; exit 2 ;;
   esac
 done
-XVFB="${TETHER_XVFB:-$(command -v Xvfb || true)}"
+XVFB="${BATTERY_XVFB:-$(command -v Xvfb || true)}"
 [ -x "$BIN" ] || { echo "Preview binary missing. Run build-preview.sh first." >&2; exit 1; }
-[ -x "$XVFB" ] || { echo "Xvfb is required. Install it or set TETHER_XVFB." >&2; exit 1; }
+[ -x "$XVFB" ] || { echo "Xvfb is required. Install it or set BATTERY_XVFB." >&2; exit 1; }
 for tool in dbus-monitor pactl xprop curl python3; do
   command -v "$tool" >/dev/null || { echo "$tool is required." >&2; exit 1; }
 done
@@ -69,7 +69,7 @@ else
   readlink -f "$(command -v bash)" >"$RUN_DIR/audio-poller.exe"
 
   [ "$MODE" = fake ] && "$SKILL_DIR/scripts/battery.sh" Discharging 50 "$HEALTH" >/dev/null
-  user_data="$SCRATCH_HOME/config/dev.arnab.tether.preview"
+  user_data="$SCRATCH_HOME/config/dev.skychaze.battery.preview"
   mkdir -p "$user_data"
   [ -n "$SEED" ] && printf '%s\n' "$SEED" >"$user_data/settings.json"
   [ -n "$HISTORY" ] && printf '%s\n' "$HISTORY" >"$user_data/health-history.json"
@@ -79,9 +79,9 @@ echo "$MODE" >"$RUN_DIR/run.mode"
 cdp_port="$(python3 -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1])')"
 echo "$cdp_port" >"$RUN_DIR/run.cdp"
 # A shell inside another Electron app can carry ELECTRON_RUN_AS_NODE, which starts a bare Node instead.
-preview_env=(env -u ELECTRON_RUN_AS_NODE -u TETHER_POWER_SUPPLY DISPLAY="$display"
+preview_env=(env -u ELECTRON_RUN_AS_NODE -u BATTERY_POWER_SUPPLY DISPLAY="$display"
   XDG_CONFIG_HOME="$SCRATCH_HOME/config")
-[ "$MODE" = fake ] && preview_env+=(TETHER_POWER_SUPPLY="$POWER_SUPPLY")
+[ "$MODE" = fake ] && preview_env+=(BATTERY_POWER_SUPPLY="$POWER_SUPPLY")
 
 "${preview_env[@]}" setsid "$BIN" --ozone-platform=x11 --remote-debugging-port="$cdp_port" </dev/null \
   >>"$RUN_DIR/preview.log" 2>&1 &
@@ -92,7 +92,7 @@ echo "$(date +%H:%M:%S) launched preview pid $preview_pid ($MODE battery)" >>"$R
 for _ in $(seq 1 30); do
   kill -0 "$preview_pid" 2>/dev/null || { echo "Preview exited early. Log tail:" >&2; tail -n 20 "$RUN_DIR/preview.log" >&2; exit 1; }
   if curl -fsS "http://127.0.0.1:$cdp_port/json/list" 2>/dev/null | grep -q '"type": "page"'; then
-    echo "Ready: Tether Preview ($MODE battery) on display $display (pid $preview_pid, DevTools port $cdp_port)"
+    echo "Ready: Battery Preview ($MODE battery) on display $display (pid $preview_pid, DevTools port $cdp_port)"
     exit 0
   fi
   sleep 1

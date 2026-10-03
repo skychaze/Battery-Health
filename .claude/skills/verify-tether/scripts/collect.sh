@@ -10,8 +10,8 @@ for file in notifications.raw audio-sinks.raw battery-timeline.log preview.log; 
   [ -f "$RUN_DIR/$file" ] && cp "$RUN_DIR/$file" "$out/"
 done
 for file in settings.json health-history.json; do
-  [ -f "$SCRATCH_HOME/config/dev.arnab.tether.preview/$file" ] &&
-    cp "$SCRATCH_HOME/config/dev.arnab.tether.preview/$file" "$out/$file"
+  [ -f "$SCRATCH_HOME/config/dev.skychaze.battery.preview/$file" ] &&
+    cp "$SCRATCH_HOME/config/dev.skychaze.battery.preview/$file" "$out/$file"
 done
 
 # One line per Notify call addressed to the notification server. The server forwards each call to the shell,
@@ -25,21 +25,21 @@ awk -v server="destination=$server " '
   want && n < 4 && /^   string "/ { n++; line = $0; sub(/^   string "/, "", line); sub(/"$/, "", line); f[n] = line; next }
   want && /string "urgency"/ { getline; urg = $NF; next }
   END { emit() }
-' "$out/notifications.raw" | grep '^app=Tether Preview' >"$out/notifications.txt" || true
+' "$out/notifications.raw" | grep '^app=Battery Preview' >"$out/notifications.txt" || true
 
 # Chromium names its audio stream after the executable and ignores PULSE_PROP. Its audio service keeps one
 # stream open across plays, so this proves playback happened, not how many sounds played.
 awk '
   /^@ / { at = $2 }
   /Sink Input #/ { id = $3 }
-  /application.process.binary = "tether-preview"/ { if (!(id in first)) first[id] = at; last[id] = at }
+  /application.process.binary = "battery-preview"/ { if (!(id in first)) first[id] = at; last[id] = at }
   END { for (id in first) print id, "from", first[id], "to", last[id] }
 ' "$out/audio-sinks.raw" | sort >"$out/audio-streams.txt"
 
 {
   echo "notifications: $(wc -l <"$out/notifications.txt")"
   sort "$out/notifications.txt" | uniq -c | sed 's/^/  /'
-  echo "tether-preview audio streams: $(wc -l <"$out/audio-streams.txt")"
+  echo "battery-preview audio streams: $(wc -l <"$out/audio-streams.txt")"
   sed 's/^/  /' "$out/audio-streams.txt"
   echo "sound errors in preview.log: $(grep -c 'Failed to play\|Skipped the alert sound' "$out/preview.log" 2>/dev/null || true)"
   echo "battery read errors in preview.log: $(grep -c 'Failed to read the battery' "$out/preview.log" 2>/dev/null || true)"

@@ -21,12 +21,12 @@ Open the window from the tray or a launch.
 node $S/drive.ts fill "Check every" 0 && node $S/drive.ts snapshot | grep -E 'alert|Check every'
 node $S/drive.ts fill "Low battery level" 15
 node $S/drive.ts click switch "Open at login"
-cat /tmp/tether-verify/home/config/autostart/tether-preview.desktop
+cat /tmp/battery-verify/home/config/autostart/battery-preview.desktop
 $S/launch.sh --restart && node $S/drive.ts snapshot
 $S/collect.sh "$EVIDENCE"
 ```
 
-Proof: the alert text and `spinbutton "Check every"` keeping its saved value; the autostart file with `Exec=".../tether-preview" --hidden`; after the restart, `Low battery level` still 15 and `Open at login` still on; `settings.json` in the evidence matching. Switch Open at login off again and confirm the file is gone.
+Proof: the alert text and `spinbutton "Check every"` keeping its saved value; the autostart file with `Exec=".../battery-preview" --hidden`; after the restart, `Low battery level` still 15 and `Open at login` still on; `settings.json` in the evidence matching. Switch Open at login off again and confirm the file is gone.
 
 ## Gotchas
 

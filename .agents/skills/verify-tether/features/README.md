@@ -1,4 +1,4 @@
-# Tether feature map
+# Battery Health feature map
 
 One file per user-facing feature of the preview app.
 
@@ -11,4 +11,4 @@ One file per user-facing feature of the preview app.
 - [health-history](health-history.md) - the daily health record and its graph
 - [updates](updates.md) - finding, offering, and refusing to install releases
 
-Every proof runs on the built Tether Preview through the helpers in `scripts/`, with the fake battery unless the file says otherwise.
+Every proof runs on the built Battery Preview through the helpers in `scripts/`, with the fake battery unless the file says otherwise.
