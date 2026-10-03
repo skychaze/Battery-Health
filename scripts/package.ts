@@ -21,7 +21,7 @@ await build({
     files: ["dist/**", "dist-electron/**", "package.json"],
     // Never published by the builder. It is set so the Linux packages record their format in
     // `resources/package-type`, which the updater reads to pick its download.
-    publish: { provider: "github", owner: "skychaze", repo: "tether" },
+    publish: { provider: "github", owner: "skychaze", repo: "Battery-Health" },
     linux: {
       target: unpacked ? "dir" : ["deb"],
       executableName: identity.executableName,

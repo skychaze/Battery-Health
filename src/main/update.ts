@@ -9,10 +9,10 @@ import type { AvailableUpdate, InstallProgress, ReleaseNotes } from "../shared/i
 import { nextRetry, parseManifest, parseReleases, pendingUpdate, verifySignature } from "./release";
 import type { PendingUpdate, PlatformKey } from "./release";
 
-export const MANIFEST_URL = "https://github.com/skychaze/tether/releases/latest/download/latest.json";
+export const MANIFEST_URL = "https://github.com/skychaze/Battery-Health/releases/latest/download/latest.json";
 const CHECK_INTERVAL = 6 * 60 * 60 * 1000;
 const DOWNLOAD_TIMEOUT = 10 * 60 * 1000;
-const RELEASES_URL = "https://api.github.com/repos/skychaze/tether/releases?per_page=100";
+const RELEASES_URL = "https://api.github.com/repos/skychaze/Battery-Health/releases?per_page=100";
 
 const run = promisify(execFile);
 
@@ -127,7 +127,7 @@ function installableUpdate(
 ): Extract<PendingUpdate, { manualInstall: false }> {
   if (!update) throw new Error("No update is ready to install.");
   if (update.manualInstall)
-    throw new Error("This version needs a fresh install. Quit Tether and install the latest release.");
+    throw new Error("This version needs a fresh install. Quit Battery Health and install the latest release.");
   if (update.notices.some(({ id }) => !acknowledgedNoticeIds.includes(id))) {
     throw new Error("Read and acknowledge the update notice before installing.");
   }
@@ -138,7 +138,7 @@ async function installUpdate(
   update: Extract<PendingUpdate, { manualInstall: false }>,
   report: (progress: InstallProgress) => void,
 ) {
-  const directory = await mkdtemp(join(app.getPath("temp"), "tether-update-"));
+  const directory = await mkdtemp(join(app.getPath("temp"), "battery-health-update-"));
   try {
     const file = await download(update, directory, report);
     report({ stage: "install" });
@@ -209,7 +209,7 @@ async function installFile(file: string) {
 
 async function installLinuxPackage(file: string) {
   if (/^NoNewPrivs:\s*1$/m.test(await readFile("/proc/self/status", "utf8"))) {
-    throw new Error("Tether needs a restart first. Quit and reopen it, then install again.");
+    throw new Error("Battery Health needs a restart first. Quit and reopen it, then install again.");
   }
   await run("pkexec", platformKey()?.endsWith("-rpm") ? ["rpm", "-U", file] : ["dpkg", "-i", file]);
 }
@@ -251,7 +251,7 @@ async function launchWindowsInstaller(file: string) {
  * old bundle back if the swap fails. */
 async function replaceAppBundle(archive: string) {
   const bundle = join(process.execPath, "..", "..", "..");
-  const staging = await mkdtemp(join(dirname(bundle), ".tether-update-"));
+  const staging = await mkdtemp(join(dirname(bundle), ".battery-health-update-"));
   const unpacked = join(staging, basename(bundle));
   const previous = join(staging, "previous.app");
   try {

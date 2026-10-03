@@ -48,7 +48,7 @@ function App() {
     <main>
       <header className="app-header">
         <h1 translate="no">
-          Tether <span>Health</span>
+          Battery <span>Health</span>
         </h1>
         <BusyButton label="Refresh health" busyLabel="Refreshing…" busy={refreshing} onClick={() => void refresh()} />
       </header>

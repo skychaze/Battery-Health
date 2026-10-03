@@ -3,9 +3,9 @@
  * this table, and the running app finds its entry again by the name it was bundled with. */
 export const identities = {
   release: {
-    productName: "Tether Health",
-    appId: "dev.skychaze.tether-health",
-    executableName: "tether-health",
+    productName: "Battery Health",
+    appId: "dev.skychaze.battery-health",
+    executableName: "battery-health",
     icons: "build/icons",
   },
   preview: {

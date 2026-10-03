@@ -177,7 +177,7 @@ function handleCommands(monitor: Monitor, settingsPath: string, updater: Updater
     }),
   );
   handle("releaseNotes", () => updater.releaseNotes());
-  handle("openLatestRelease", () => shell.openExternal("https://github.com/skychaze/tether/releases/latest"));
+  handle("openLatestRelease", () => shell.openExternal("https://github.com/skychaze/Battery-Health/releases/latest"));
 }
 
 /** Closing the window destroys it, so the tray and a normal launch build it afresh. A closed window

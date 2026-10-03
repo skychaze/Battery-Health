@@ -1,4 +1,4 @@
-# Tether Health
+# Battery Health
 
 A battery health tray app for Linux, focused on Pop!_OS and Ubuntu on x86-64. Forked from [Tether](https://github.com/zytact/tether).
 
@@ -18,7 +18,7 @@ Health checks run at launch, every hour, after waking from sleep, and when you c
 
 Linux reads the first system battery in `/sys/class/power_supply`, skipping batteries with a Device scope. It uses `energy_full` and `energy_full_design`, with a fallback to `charge_full` and `charge_full_design`. Capacities in Wh are available only when energy readings exist. Missing health, capacities, or cycle count appear as unavailable.
 
-Settings and history stay local in `~/.config/dev.skychaze.tether-health/`. The app has its own identity, so it can run beside upstream Tether.
+Settings and history stay local in `~/.config/dev.skychaze.battery-health/`. The app has its own identity, so it can run beside upstream Tether.
 
 ## Build
 
@@ -34,7 +34,7 @@ vp pack
 vp run package
 ```
 
-The Linux build creates `release/tether-health/tether-health_3.3.0_amd64.deb`. Build on Linux. To run in development, use `vp run dev`.
+The Linux build creates `release/battery-health/battery-health_1.0.0_amd64.deb`. Build on Linux. To run in development, use `vp run dev`.
 
 ## Updates
 

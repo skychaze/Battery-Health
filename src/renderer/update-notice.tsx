@@ -20,7 +20,7 @@ export function UpdateNotice() {
 function ManualUpdate({ version }: { version: string }) {
   return (
     <section className="update update-manual" aria-label="Update available">
-      <p>Version {version} is available. Quit Tether, then download and install the latest release.</p>
+      <p>Version {version} is available. Quit Battery Health, then download and install the latest release.</p>
       <button onClick={() => void window.tether.invoke("openLatestRelease")}>Open latest release</button>
     </section>
   );
@@ -55,7 +55,7 @@ function InstallableUpdate({ update, progress }: { update: AvailableUpdate; prog
       {noticeContent}
       <InstallProgressStrip version={update.version} progress={progress}>
         <div className="release-notes-install">
-          <p>Tether relaunches after installing.</p>
+          <p>Battery Health relaunches after installing.</p>
           {installButton}
         </div>
       </InstallProgressStrip>

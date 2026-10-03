@@ -1,6 +1,6 @@
 {
-  "name": "tether",
-  "version": "3.3.0",
+  "name": "battery-health",
+  "version": "1.0.0",
   "private": true,
   "description": "Precise battery health and history, from the system tray",
   "author": "Arnab",
@@ -29,5 +29,5 @@
     "vite-plus": "catalog:"
   },
   "packageManager": "pnpm@11.24.0",
-  "productName": "Tether Health"
+  "productName": "Battery Health"
 }

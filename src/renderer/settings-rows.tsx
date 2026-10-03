@@ -100,7 +100,7 @@ export function OpenAtLoginRow() {
     <>
       <Row
         title="Open at login"
-        description="Tether starts in the tray when you sign in, without opening its window."
+        description="Battery Health starts in the tray when you sign in, without opening its window."
         control={
           enabled === null ? (
             <PendingLabel
@@ -126,7 +126,8 @@ export function VersionRow() {
   const [update] = usePublishedState("updateAvailable");
   const [check, setCheck] = useState<"idle" | "checking" | "latest">("idle");
   const [error, setError] = useState<string | null>(null);
-  const fail = (reason: unknown) => setError(reason instanceof Error ? reason.message : "Could not update Tether.");
+  const fail = (reason: unknown) =>
+    setError(reason instanceof Error ? reason.message : "Could not update Battery Health.");
 
   const checkForUpdate = async () => {
     setCheck("checking");

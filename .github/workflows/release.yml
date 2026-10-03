@@ -11,7 +11,7 @@ on:
         type: boolean
         default: false
       tag:
-        description: Tag to publish under (e.g. v3.3.0). Required only when publish is on.
+        description: Tag to publish under (e.g. v1.0.0). Required only when publish is on.
         type: string
         default: ""
 
@@ -66,7 +66,7 @@ jobs:
             exit 0
           fi
           shopt -s nullglob
-          node scripts/sign-update.ts release/tether-health/*.deb
+          node scripts/sign-update.ts release/battery-health/*.deb
 
       - uses: actions/upload-artifact@v4
         with:
@@ -74,8 +74,8 @@ jobs:
           retention-days: 7
           if-no-files-found: error
           path: |
-            release/tether-health/*.deb
-            release/tether-health/*.sig
+            release/battery-health/*.deb
+            release/battery-health/*.sig
 
   publish:
     if: github.event_name == 'push' || inputs.publish
@@ -123,5 +123,5 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "${assets[@]}" --clobber
           else
-            gh release create "$TAG" "${assets[@]}" --draft --title "Tether Health $TAG" --verify-tag --generate-notes
+            gh release create "$TAG" "${assets[@]}" --draft --title "Battery Health $TAG" --verify-tag --generate-notes
           fi

@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Tether Health is a battery health Electron app written in TypeScript. It runs in the system tray, checks health hourly and after resume, and shows decimal health, capacities, cycle count, and daily history. There is no CLI. The main process is in `src/main/`, the preload bridges in `src/preload/`, the React page in `src/renderer/`, and the types and helpers both sides use in `src/shared/`. The IPC contract lives in `src/shared/ipc.ts`.
+Battery Health is a battery health Electron app written in TypeScript. It runs in the system tray, checks health hourly and after resume, and shows decimal health, capacities, cycle count, and daily history. There is no CLI. The main process is in `src/main/`, the preload bridges in `src/preload/`, the React page in `src/renderer/`, and the types and helpers both sides use in `src/shared/`. The IPC contract lives in `src/shared/ipc.ts`.
 
 ## Toolchain
 
