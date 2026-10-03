@@ -15,7 +15,7 @@ import { writeJsonFile } from "./json-file";
 import { Monitor } from "./monitor";
 import { launchedHidden, openAtLogin, setOpenAtLogin } from "./open-at-login";
 import { changeSettings, loadSettings } from "./settings";
-import { percentIcon, TRAY_ICON_SIZE } from "./tray-icon";
+import { percentIcon } from "./tray-icon";
 import { trayItems } from "./tray-menu";
 import type { TrayAction } from "./tray-menu";
 import { MANIFEST_URL, Updater } from "./update";
@@ -233,8 +233,8 @@ function showHealth(tray: Tray, health: HealthPercent | null) {
 }
 
 function healthImage(health: HealthPercent) {
-  const bitmap = percentIcon(health, trayImage().toBitmap());
-  return nativeImage.createFromBitmap(bitmap, { width: TRAY_ICON_SIZE, height: TRAY_ICON_SIZE });
+  const { bitmap, width, height } = percentIcon(health, trayImage().toBitmap());
+  return nativeImage.createFromBitmap(bitmap, { width, height });
 }
 
 function publish<E extends keyof Events>(event: E, payload: Events[E]) {

@@ -1,8 +1,6 @@
 import type { HealthPercent } from "../shared/battery";
 
-export const TRAY_ICON_SIZE = 64;
-
-// Two rows keep the whole number and decimal places legible in a square tray icon.
+// A wide icon lets the Linux panel keep the decimal reading at a legible height.
 const glyphs: Record<string, string[]> = {
   ".": [".", ".", ".", ".", "#"],
   "0": ["###", "#.#", "#.#", "#.#", "###"],
@@ -17,31 +15,31 @@ const glyphs: Record<string, string[]> = {
   "9": ["###", "#.#", "###", "..#", "###"],
 };
 const GLYPH_HEIGHT = 5;
-const MAX_SCALE = 5;
+const SCALE = 3;
+const PADDING = 2;
 
-/** Draws `percent` as two rows of decimal digits on a transparent square, in the first opaque color of `mark`. Both are BGRA
- * bitmaps, as `nativeImage` reads and writes them. */
-export function percentIcon(percent: HealthPercent, mark: Buffer): Buffer {
-  const bitmap = Buffer.alloc(TRAY_ICON_SIZE * TRAY_ICON_SIZE * 4);
+/** Draws a horizontal decimal reading in the first opaque color of `mark`. Both are BGRA bitmaps,
+ * as `nativeImage` reads and writes them. */
+export function percentIcon(percent: HealthPercent, mark: Buffer) {
+  const digits = percent
+    .toFixed(2)
+    .split("")
+    .map((digit) => glyphs[digit]);
+  const glyphWidth = digits.reduce((sum, glyph) => sum + glyph[0].length, digits.length - 1);
+  const width = glyphWidth * SCALE + PADDING * 2;
+  const height = GLYPH_HEIGHT * SCALE + PADDING * 2;
+  const bitmap = Buffer.alloc(width * height * 4);
   const color = opaquePixel(mark);
-  const [whole, decimals] = percent.toFixed(2).split(".");
-  const rows = [whole, `.${decimals}`];
-  for (const [rowIndex, text] of rows.entries()) {
-    const digits = text.split("").map((digit) => glyphs[digit]);
-    const width = digits.reduce((sum, glyph) => sum + glyph[0].length, digits.length - 1);
-    const scale = Math.min(MAX_SCALE, Math.floor(TRAY_ICON_SIZE / width));
-    const top = rowIndex * 32 + Math.floor((32 - GLYPH_HEIGHT * scale) / 2);
-    let left = Math.floor((TRAY_ICON_SIZE - width * scale) / 2);
-    for (const glyph of digits) {
-      glyph.forEach((row, y) =>
-        row.split("").forEach((cell, x) => {
-          if (cell === "#") fill(bitmap, left + x * scale, top + y * scale, scale, color);
-        }),
-      );
-      left += (glyph[0].length + 1) * scale;
-    }
+  let left = PADDING;
+  for (const glyph of digits) {
+    glyph.forEach((row, y) =>
+      row.split("").forEach((cell, x) => {
+        if (cell === "#") fill(bitmap, width, left + x * SCALE, PADDING + y * SCALE, SCALE, color);
+      }),
+    );
+    left += (glyph[0].length + 1) * SCALE;
   }
-  return bitmap;
+  return { bitmap, width, height };
 }
 
 function opaquePixel(bitmap: Buffer) {
@@ -51,8 +49,8 @@ function opaquePixel(bitmap: Buffer) {
   throw new Error("The tray mark has no opaque pixel to take its color from.");
 }
 
-function fill(bitmap: Buffer, left: number, top: number, size: number, pixel: Buffer) {
+function fill(bitmap: Buffer, width: number, left: number, top: number, size: number, pixel: Buffer) {
   for (let y = top; y < top + size; y++) {
-    for (let x = left; x < left + size; x++) bitmap.set(pixel, (y * TRAY_ICON_SIZE + x) * 4);
+    for (let x = left; x < left + size; x++) bitmap.set(pixel, (y * width + x) * 4);
   }
 }
