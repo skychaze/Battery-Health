@@ -47,7 +47,7 @@ export const CURRENT = "current";
  * so a failure travels as a value and the preload throws it again. */
 export type Reply<T> = { ok: true; value: T } | { ok: false; error: string };
 
-/** What the preload exposes to the window as `window.tether`. */
+/** What the preload exposes to the window as `window.battery`. */
 export type Bridge = {
   platform: NodeJS.Platform;
   invoke<C extends keyof Commands>(command: C, ...args: Parameters<Commands[C]>): Promise<ReturnType<Commands[C]>>;

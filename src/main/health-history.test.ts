@@ -30,7 +30,7 @@ describe("health history", () => {
   });
 
   it("drops malformed saved samples and keeps one per day, oldest first", () => {
-    const directory = mkdtempSync(join(tmpdir(), "tether-history-"));
+    const directory = mkdtempSync(join(tmpdir(), "battery-history-"));
     try {
       const file = join(directory, "health-history.json");
       expect(loadHealthHistory(file)).toEqual([]);

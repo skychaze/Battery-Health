@@ -9,7 +9,7 @@ import { changeSettings, loadSettings } from "./settings";
 let directory: string;
 afterEach(() => rmSync(directory, { recursive: true, force: true }));
 function path() {
-  directory = mkdtempSync(join(tmpdir(), "tether-settings-"));
+  directory = mkdtempSync(join(tmpdir(), "battery-settings-"));
   return join(directory, "settings.json");
 }
 

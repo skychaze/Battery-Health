@@ -2,7 +2,7 @@ import { generateKeyPairSync, sign } from "node:crypto";
 import { describe, expect, it } from "vite-plus/test";
 import { nextRetry, parseManifest, parseReleases, pendingUpdate, verifySignature } from "./release";
 
-const asset = { url: "https://x/tether.rpm", signature: "c2ln" };
+const asset = { url: "https://x/battery-health.rpm", signature: "c2ln" };
 
 describe("release manifest", () => {
   it("keeps the platforms that name both a download and a signature", () => {

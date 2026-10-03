@@ -11,13 +11,13 @@ export function usePublishedState<E extends keyof Events>(event: E) {
 
   useEffect(() => {
     let mounted = true;
-    const stop = window.tether.on(event, (published) => {
+    const stop = window.battery.on(event, (published) => {
       if (mounted) {
         setValue(published);
         setFailed(false);
       }
     });
-    void window.tether.current(event).then(
+    void window.battery.current(event).then(
       (read) => {
         if (mounted) setValue((current) => current ?? read);
       },

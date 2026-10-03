@@ -19,7 +19,7 @@ A pre-commit hook at `.vite-hooks/pre-commit` runs `vp staged`. `vp config` inst
 - Preserve raw health values in readings and history; round only when displaying them.
 - Keep monitoring independent of the window lifecycle. Closing the window leaves monitoring running.
 - Update URLs and the Ed25519 verification key belong to this fork.
-- Prove behavior in the real app with the `verify-tether` skill.
+- Prove behavior in the real app with the `verify-battery-health` skill.
 
 ## Validation
 

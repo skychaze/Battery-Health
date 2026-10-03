@@ -70,7 +70,7 @@ export function OpenAtLoginRow() {
 
   useEffect(() => {
     let mounted = true;
-    void window.tether.invoke("openAtLogin").then(
+    void window.battery.invoke("openAtLogin").then(
       (read) => {
         if (mounted) setEnabled(read);
       },
@@ -87,7 +87,7 @@ export function OpenAtLoginRow() {
     setSaving(true);
     setError(null);
     try {
-      await window.tether.invoke("setOpenAtLogin", next);
+      await window.battery.invoke("setOpenAtLogin", next);
       setEnabled(next);
     } catch {
       setError(next ? "Could not turn on opening at login." : "Could not turn off opening at login.");
@@ -133,7 +133,7 @@ export function VersionRow() {
     setCheck("checking");
     setError(null);
     try {
-      setCheck((await window.tether.invoke("checkForUpdate")) ? "idle" : "latest");
+      setCheck((await window.battery.invoke("checkForUpdate")) ? "idle" : "latest");
     } catch (reason) {
       setCheck("idle");
       fail(reason);

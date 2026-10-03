@@ -25,7 +25,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [interval, setInterval] = useState(3600);
   useEffect(() => {
-    void window.tether.invoke("settings").then(
+    void window.battery.invoke("settings").then(
       (settings) => setInterval(settings.intervalSeconds),
       () => setError("Could not load the check interval. Reopen the window to try again."),
     );
@@ -36,7 +36,7 @@ function App() {
     setRefreshing(true);
     setError(null);
     try {
-      await window.tether.invoke("refreshBattery");
+      await window.battery.invoke("refreshBattery");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not refresh. Try again.");
     } finally {

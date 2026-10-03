@@ -1,5 +1,5 @@
 ---
-name: verify-tether
+name: verify-battery-health
 description: Build and drive the isolated Battery Preview Electron tray app against a fake battery, then capture proof of its notifications, urgency, sound, settings window, persistence, tray menu, and updates. Use when verifying a change to alert thresholds, alert sessions, settings changes, sound playback, open at login, the tray, or the updater.
 ---
 
@@ -7,7 +7,7 @@ description: Build and drive the isolated Battery Preview Electron tray app agai
 
 Battery Health is an Electron tray app. The main process reads the battery on an interval, and the window shows decimal health, capacities, cycle count, and daily history. There is no CLI.
 
-Verification uses the built preview app on Linux. Drive its real window over the Chrome DevTools Protocol, its tray menu over D-Bus, and its battery through a fake sysfs tree. Do not load `dist/index.html` or the dev server in a browser, and do not stub `window.tether`: a plain tab has no preload bridge and no monitor.
+Verification uses the built preview app on Linux. Drive its real window over the Chrome DevTools Protocol, its tray menu over D-Bus, and its battery through a fake sysfs tree. Do not load `dist/index.html` or the dev server in a browser, and do not stub `window.battery`: a plain tab has no preload bridge and no monitor.
 
 ## Isolation
 
@@ -28,7 +28,7 @@ Only one harness preview runs at a time. `launch.sh` refuses a second launch unt
 Run from the repository root. Needs `vp`, Xvfb, `xprop`, `dbus-monitor`, `pactl`, `gdbus`, `curl`, `python3`, and `ffmpeg` for a test sound.
 
 ```sh
-S=.agents/skills/verify-tether/scripts
+S=.agents/skills/verify-battery-health/scripts
 EVIDENCE=verification-evidence/battery-health-$(date -u +%Y%m%dT%H%M%SZ)-<name>
 mkdir -p "$EVIDENCE"
 ffmpeg -y -loglevel error -f lavfi -i "sine=frequency=880:duration=0.4" "$EVIDENCE/beep.wav"

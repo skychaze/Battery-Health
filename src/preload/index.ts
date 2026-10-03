@@ -20,4 +20,4 @@ const bridge: Bridge = {
   current: (event) => ipcRenderer.invoke(CURRENT, event),
 };
 
-contextBridge.exposeInMainWorld("tether", bridge);
+contextBridge.exposeInMainWorld("battery", bridge);

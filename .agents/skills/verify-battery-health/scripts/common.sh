@@ -1,4 +1,4 @@
-# Shared paths for the verify-tether helpers. Sourced, not run.
+# Shared paths for the verify-battery-health helpers. Sourced, not run.
 SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO="$(cd "$SKILL_DIR/../../.." && pwd)"
 BIN="$REPO/release/battery-preview/linux-unpacked/battery-preview"

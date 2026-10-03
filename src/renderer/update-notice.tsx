@@ -21,7 +21,7 @@ function ManualUpdate({ version }: { version: string }) {
   return (
     <section className="update update-manual" aria-label="Update available">
       <p>Version {version} is available. Quit Battery Health, then download and install the latest release.</p>
-      <button onClick={() => void window.tether.invoke("openLatestRelease")}>Open latest release</button>
+      <button onClick={() => void window.battery.invoke("openLatestRelease")}>Open latest release</button>
     </section>
   );
 }
@@ -173,7 +173,7 @@ function useInstall() {
     setInstalling(true);
     setError(null);
     try {
-      await window.tether.invoke("installUpdate", acknowledgedNoticeIds);
+      await window.battery.invoke("installUpdate", acknowledgedNoticeIds);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not install the update.");
     } finally {

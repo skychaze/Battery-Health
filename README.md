@@ -46,7 +46,7 @@ Push a version tag matching `package.json` to build the Linux deb and prepare a 
 
 ## Verification
 
-The existing `.agents/skills/verify-tether` harness drives a separately identified Electron preview, its actual tray menu, and fake or real battery readings. Its upstream alert instructions describe features removed in this fork. Use the health-history, tray-and-window, and updates helpers for this app. Preview settings stay separate from the release build.
+The existing `.agents/skills/verify-battery-health` harness drives a separately identified Electron preview, its actual tray menu, and fake or real battery readings. Its upstream alert instructions describe features removed in this fork. Use the health-history, tray-and-window, and updates helpers for this app. Preview settings stay separate from the release build.
 
 ## License
 

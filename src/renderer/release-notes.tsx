@@ -22,7 +22,7 @@ export function ReleaseNotesPage({
 
   useEffect(() => {
     dialog.current?.showModal();
-    window.tether.invoke("releaseNotes").then(setReleases, () => setReleases("unavailable"));
+    window.battery.invoke("releaseNotes").then(setReleases, () => setReleases("unavailable"));
   }, []);
 
   return (
