@@ -31,19 +31,32 @@ describe("tray icon", () => {
     expect(image.bitmap.some((_, at) => at % 4 === 3 && image.bitmap[at] === 255)).toBe(true);
   });
 
+  it("keeps the restored symbol at 12px and the decimal digits at 10px", () => {
+    const image = icon(90.7);
+    const rows = (from: number, to: number) =>
+      Array.from({ length: image.height }, (_, y) => y).filter((y) =>
+        Array.from({ length: to - from }, (_, x) => from + x).some(
+          (x) => image.bitmap[(y * image.width + x) * 4 + 3] !== 0,
+        ),
+      );
+    expect(rows(3, 15)).toEqual(Array.from({ length: 12 }, (_, y) => y + 2));
+    expect(rows(19, image.width - 3)).toEqual(Array.from({ length: 10 }, (_, y) => y + 3));
+    expect(rows(15, 19)).toEqual([]);
+  });
+
   it("keeps every decimal reading horizontal, centered, compact, and at the same font height", () => {
     const heights = [];
     for (const value of [7, 42, 91.68, 100.4]) {
       const image = icon(value);
       const { left, top, width, height } = drawn(image);
       expect(image.width).toBeGreaterThan(image.height * 1.5);
-      expect(image.width).toBeLessThanOrEqual(46);
+      expect(image.width).toBeLessThanOrEqual(62);
       expect(image.height).toBe(16);
       expect(image.bitmap.length).toBe(image.width * image.height * 4);
       expect(image.width - width - 2 * left).toBe(0);
       expect(image.height - height - 2 * top).toBe(0);
       heights.push(height);
     }
-    expect(heights).toEqual([10, 10, 10, 10]);
+    expect(heights).toEqual([12, 12, 12, 12]);
   });
 });

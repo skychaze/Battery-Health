@@ -232,7 +232,7 @@ function trayImage() {
     markFile = join(trayFileDir(), "mark.png");
     writeFileSync(markFile, image.toPNG());
   }
-  return nativeImage.createFromPath(markFile);
+  return markFile;
 }
 
 /** macOS writes the health beside its template mark; elsewhere a compact decimal reading in the health
@@ -255,7 +255,6 @@ function healthImage(health: HealthPercent) {
   writeFileSync(file, nativeImage.createFromBitmap(bitmap, { width, height }).toPNG());
   const previous = lastHealthFile;
   lastHealthFile = file;
-  const loaded = nativeImage.createFromPath(file);
   if (previous) {
     try {
       rmSync(previous);
@@ -263,7 +262,7 @@ function healthImage(health: HealthPercent) {
       // The tray has already read the replaced file.
     }
   }
-  return loaded;
+  return file;
 }
 
 let trayDir: string | null = null;

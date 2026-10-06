@@ -1,9 +1,7 @@
 import { healthBand, type HealthPercent } from "../shared/battery";
 
-// A compact horizontal icon keeps the two-decimal reading legible while matching the
-// neighbouring tray marks. Digits only at the same 10px digit height as the reference
-// mark, with matching padding for a 16px icon: no leading symbol, so the panel width
-// stays proportional to the five characters.
+// A 16px canvas keeps the 10px digits and 12px heart-and-charger mark at the
+// same scale as neighbouring tray indicators.
 const glyphs: Record<string, string[]> = {
   ".": [".", ".", ".", ".", "#"],
   "0": ["###", "#.#", "#.#", "#.#", "###"],
@@ -17,22 +15,44 @@ const glyphs: Record<string, string[]> = {
   "8": ["###", "#.#", "###", "#.#", "###"],
   "9": ["###", "#.#", "###", "..#", "###"],
 };
+const heartBattery = [
+  "..###..###..",
+  ".##########.",
+  "#####..#####",
+  "####....####",
+  "####.##.####",
+  ".###.##.###.",
+  "..##.##.##..",
+  "..##.##.##..",
+  "...#....#...",
+  "....####....",
+  ".....##.....",
+  ".....##.....",
+];
+const SYMBOL_GAP = 4;
 const GLYPH_HEIGHT = 5;
 const SCALE = 2;
 const PADDING = 3;
 
-/** Draws the horizontal decimal reading as a BGRA bitmap, colored by health band. */
+/** Draws the heart-and-charger mark and horizontal decimal reading as a BGRA bitmap, colored by health band. */
 export function percentIcon(percent: HealthPercent) {
   const digits = percent
     .toFixed(2)
     .split("")
     .map((digit) => glyphs[digit]);
   const glyphWidth = digits.reduce((sum, glyph) => sum + glyph[0].length, digits.length - 1);
-  const width = glyphWidth * SCALE + PADDING * 2;
+  const prefixWidth = heartBattery[0].length + SYMBOL_GAP;
+  const width = prefixWidth + glyphWidth * SCALE + PADDING * 2;
   const height = GLYPH_HEIGHT * SCALE + PADDING * 2;
   const bitmap = Buffer.alloc(width * height * 4);
   const color = Buffer.from(healthBand(percent).bgra);
-  let left = PADDING;
+  const symbolTop = (height - heartBattery.length) / 2;
+  heartBattery.forEach((row, y) =>
+    row.split("").forEach((cell, x) => {
+      if (cell === "#") fill(bitmap, width, PADDING + x, symbolTop + y, 1, color);
+    }),
+  );
+  let left = PADDING + prefixWidth;
   for (const glyph of digits) {
     glyph.forEach((row, y) =>
       row.split("").forEach((cell, x) => {
