@@ -27,7 +27,7 @@ describe("tray icon", () => {
     expect(drawn(icon(81)).color).toEqual([48, 144, 245, 255]);
     expect(drawn(icon(80.99)).color).toEqual([84, 84, 235, 255]);
     const image = icon(91.6);
-    expect(drawn(image).left).toBe(1);
+    expect(drawn(image).left).toBe(3);
     expect(image.bitmap.some((_, at) => at % 4 === 3 && image.bitmap[at] === 255)).toBe(true);
   });
 
@@ -37,8 +37,8 @@ describe("tray icon", () => {
       const image = icon(value);
       const { left, top, width, height } = drawn(image);
       expect(image.width).toBeGreaterThan(image.height * 1.5);
-      expect(image.width).toBeLessThanOrEqual(42);
-      expect(image.height).toBe(12);
+      expect(image.width).toBeLessThanOrEqual(46);
+      expect(image.height).toBe(16);
       expect(image.bitmap.length).toBe(image.width * image.height * 4);
       expect(image.width - width - 2 * left).toBe(0);
       expect(image.height - height - 2 * top).toBe(0);

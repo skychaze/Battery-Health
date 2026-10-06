@@ -1,8 +1,9 @@
 import { healthBand, type HealthPercent } from "../shared/battery";
 
-// A compact horizontal icon keeps the two-decimal reading legible while staying close to the
-// neighbouring tray marks. Digits only: no leading symbol, so the panel width stays proportional
-// to the five characters.
+// A compact horizontal icon keeps the two-decimal reading legible while matching the
+// neighbouring tray marks. Digits only at the same 10px digit height as the reference
+// mark, with matching padding for a 16px icon: no leading symbol, so the panel width
+// stays proportional to the five characters.
 const glyphs: Record<string, string[]> = {
   ".": [".", ".", ".", ".", "#"],
   "0": ["###", "#.#", "#.#", "#.#", "###"],
@@ -18,7 +19,7 @@ const glyphs: Record<string, string[]> = {
 };
 const GLYPH_HEIGHT = 5;
 const SCALE = 2;
-const PADDING = 1;
+const PADDING = 3;
 
 /** Draws the horizontal decimal reading as a BGRA bitmap, colored by health band. */
 export function percentIcon(percent: HealthPercent) {
