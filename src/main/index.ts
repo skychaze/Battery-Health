@@ -1,3 +1,4 @@
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { app, BrowserWindow, ipcMain, Menu, nativeImage, nativeTheme, shell, powerMonitor, Tray } from "electron";
 import appIcon from "../../build/icons/icon.png";
@@ -113,7 +114,10 @@ function start() {
   // Clicking the dock icon on macOS reopens the window.
   app.on("activate", showWindow);
   if (!launchedHidden()) showWindow();
-  app.on("before-quit", () => monitor.stop());
+  app.on("before-quit", () => {
+    monitor.stop();
+    cleanTrayFiles();
+  });
   powerMonitor.on("resume", () => void monitor.refresh());
   monitor.start();
   void updater.watch();
@@ -214,27 +218,75 @@ function showWindow() {
 }
 
 /** macOS draws the release mark from its alpha channel as a template image, and the preview mark in color,
- * since both share one silhouette. */
+ * since both share one silhouette. Elsewhere the tray host only honors file-backed icons, so the mark
+ * is written out once and loaded by path. */
 function trayImage() {
   const image = nativeImage.createFromDataURL(preview ? previewTrayIcon : trayIcon);
-  if (process.platform !== "darwin") return image;
-  const sized = image.resize({ height: 18, quality: "best" });
-  sized.addRepresentation({ scaleFactor: 2, buffer: image.resize({ height: 36, quality: "best" }).toPNG() });
-  sized.setTemplateImage(!preview);
-  return sized;
+  if (process.platform === "darwin") {
+    const sized = image.resize({ height: 18, quality: "best" });
+    sized.addRepresentation({ scaleFactor: 2, buffer: image.resize({ height: 36, quality: "best" }).toPNG() });
+    sized.setTemplateImage(!preview);
+    return sized;
+  }
+  if (!markFile) {
+    markFile = join(trayFileDir(), "mark.png");
+    writeFileSync(markFile, image.toPNG());
+  }
+  return markFile;
 }
 
-/** macOS writes the health beside its template mark; elsewhere a colored health symbol precedes the
- * decimal reading. Without a health reading the tray shows the plain mark. */
+/** macOS writes the health beside its template mark; elsewhere a compact decimal reading in the health
+ * color. Without a health reading the tray shows the plain mark. */
 function showHealth(tray: Tray, health: HealthPercent | null) {
   if (process.platform === "darwin")
     tray.setTitle(health === null ? "" : `${formatHealth(health)}%`, { fontType: "monospacedDigit" });
   else tray.setImage(health === null ? trayImage() : healthImage(health));
 }
 
+/** The tray host ignores inline pixmaps, so each health bitmap is written out and loaded by path,
+ * which is what the host publishes. The previous file is removed once the new image is set. */
+let trayFileSerial = 0;
+let markFile: string | null = null;
+let lastHealthFile: string | null = null;
+
 function healthImage(health: HealthPercent) {
   const { bitmap, width, height } = percentIcon(health);
-  return nativeImage.createFromBitmap(bitmap, { width, height });
+  const file = join(trayFileDir(), `health-${trayFileSerial++}.png`);
+  writeFileSync(file, nativeImage.createFromBitmap(bitmap, { width, height }).toPNG());
+  const previous = lastHealthFile;
+  lastHealthFile = file;
+  if (previous) {
+    try {
+      rmSync(previous);
+    } catch {
+      // The tray has already read the replaced file.
+    }
+  }
+  return file;
+}
+
+let trayDir: string | null = null;
+
+function trayFileDir() {
+  if (!trayDir) {
+    trayDir = join(app.getPath("temp"), "battery-health-tray");
+    mkdirSync(trayDir, { recursive: true });
+  }
+  return trayDir;
+}
+
+/** Removes the tray icon files written out for the host. */
+export function cleanTrayFiles() {
+  if (trayDir) {
+    try {
+      rmSync(trayDir, { recursive: true, force: true });
+    } catch {
+      // Best effort on the way out.
+    }
+    trayDir = null;
+  }
+  markFile = null;
+  lastHealthFile = null;
 }
 
 function publish<E extends keyof Events>(event: E, payload: Events[E]) {
