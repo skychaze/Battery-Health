@@ -8,7 +8,7 @@ The window shows full-charge capacity, design capacity, charge cycles, the last 
 
 ## Capacity colors
 
-A compact horizontal tray reading shows the health in color. Green is Good at 90% and above, yellow is Ok from 86% to below 90%, orange is Worn from 81% to below 86%, and red is Bad below 81%. The tooltip, menu, and window also show the status in words. Classification uses the raw reading before rounding.
+A small heart-and-battery symbol precedes the horizontal tray reading. Green is Good at 90% and above, yellow is Ok from 86% to below 90%, orange is Worn from 81% to below 86%, and red is Bad below 81%. The tooltip, menu, and window also show the status in words. Classification uses the raw reading before rounding.
 
 These are app-defined capacity bands, not Lenovo Vantage diagnoses. The color boundaries are user-chosen. Lenovo's refurbishment replacement policy separately provides an 80% capacity reference. Expand "What the colors mean" for the bands and the 80% capacity in Wh for your battery. See [battery health references](docs/battery-health-reference.md) for official sources and the distinction from charge limits and model lifespan.
 
