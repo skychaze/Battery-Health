@@ -1,6 +1,6 @@
 {
   "name": "battery-health",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Precise battery health and history, from the system tray",
   "author": "Arnab",
