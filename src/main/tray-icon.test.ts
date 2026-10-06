@@ -21,28 +21,29 @@ function drawn({ bitmap, width: iconWidth, height: iconHeight }: ReturnType<type
 }
 
 describe("tray icon", () => {
-  it("colors the symbol and digits by health rather than charge", () => {
+  it("colors the digits by health rather than charge", () => {
     expect(drawn(icon(91.6)).color).toEqual([113, 204, 46, 255]);
     expect(drawn(icon(86)).color).toEqual([76, 201, 242, 255]);
     expect(drawn(icon(81)).color).toEqual([48, 144, 245, 255]);
     expect(drawn(icon(80.99)).color).toEqual([84, 84, 235, 255]);
     const image = icon(91.6);
-    expect(image.bitmap.some((_, at) => at % 4 === 3 && (at / 4) % image.width < 17 && image.bitmap[at] === 255)).toBe(
-      true,
-    );
+    expect(drawn(image).left).toBe(1);
+    expect(image.bitmap.some((_, at) => at % 4 === 3 && image.bitmap[at] === 255)).toBe(true);
   });
 
-  it("keeps every decimal reading horizontal, centered, and at the same font height", () => {
+  it("keeps every decimal reading horizontal, centered, compact, and at the same font height", () => {
     const heights = [];
     for (const value of [7, 42, 91.68, 100.4]) {
       const image = icon(value);
       const { left, top, width, height } = drawn(image);
       expect(image.width).toBeGreaterThan(image.height * 1.5);
+      expect(image.width).toBeLessThanOrEqual(42);
+      expect(image.height).toBe(12);
       expect(image.bitmap.length).toBe(image.width * image.height * 4);
       expect(image.width - width - 2 * left).toBe(0);
       expect(image.height - height - 2 * top).toBe(0);
       heights.push(height);
     }
-    expect(heights).toEqual([15, 15, 15, 15]);
+    expect(heights).toEqual([10, 10, 10, 10]);
   });
 });

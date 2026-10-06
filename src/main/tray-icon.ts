@@ -1,6 +1,8 @@
 import { healthBand, type HealthPercent } from "../shared/battery";
 
-// A wide icon lets the Linux panel keep the decimal reading at a legible height.
+// A compact horizontal icon keeps the two-decimal reading legible while staying close to the
+// neighbouring tray marks. Digits only: no leading symbol, so the panel width stays proportional
+// to the five characters.
 const glyphs: Record<string, string[]> = {
   ".": [".", ".", ".", ".", "#"],
   "0": ["###", "#.#", "#.#", "#.#", "###"],
@@ -14,45 +16,22 @@ const glyphs: Record<string, string[]> = {
   "8": ["###", "#.#", "###", "#.#", "###"],
   "9": ["###", "#.#", "###", "..#", "###"],
 };
-const heartBattery = [
-  "..####...####..",
-  ".######.######.",
-  "###############",
-  "######...######",
-  "#####.....#####",
-  "#####.###.#####",
-  ".####.###.####.",
-  ".####.....####.",
-  "..###.###.###..",
-  "...##.###.##...",
-  "....#.....#....",
-  ".....#####.....",
-  "......###......",
-  ".......#.......",
-  "...............",
-];
 const GLYPH_HEIGHT = 5;
-const SCALE = 3;
-const PADDING = 2;
+const SCALE = 2;
+const PADDING = 1;
 
-/** Draws the health symbol and horizontal decimal reading as a BGRA bitmap. */
+/** Draws the horizontal decimal reading as a BGRA bitmap, colored by health band. */
 export function percentIcon(percent: HealthPercent) {
   const digits = percent
     .toFixed(2)
     .split("")
     .map((digit) => glyphs[digit]);
   const glyphWidth = digits.reduce((sum, glyph) => sum + glyph[0].length, digits.length - 1);
-  const prefixWidth = heartBattery[0].length + 6;
-  const width = prefixWidth + glyphWidth * SCALE + PADDING * 2;
+  const width = glyphWidth * SCALE + PADDING * 2;
   const height = GLYPH_HEIGHT * SCALE + PADDING * 2;
   const bitmap = Buffer.alloc(width * height * 4);
   const color = Buffer.from(healthBand(percent).bgra);
-  heartBattery.forEach((row, y) =>
-    row.split("").forEach((cell, x) => {
-      if (cell === "#") fill(bitmap, width, PADDING + x, PADDING + y, 1, color);
-    }),
-  );
-  let left = PADDING + prefixWidth;
+  let left = PADDING;
   for (const glyph of digits) {
     glyph.forEach((row, y) =>
       row.split("").forEach((cell, x) => {
